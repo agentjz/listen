@@ -1,0 +1,22 @@
+<view class="page practice-categories-page">
+  <view class="section page-head">
+    <view class="title">{{mode === 'local' ? '本地分类随机' : '云端分类随机'}}</view>
+    <view class="subtitle">只显示包含音频材料的分类。</view>
+  </view>
+
+  <view wx:if="{{isLoading}}" class="empty-state">正在加载</view>
+  <view wx:elif="{{categories.length === 0}}" class="empty-state">
+    <view class="empty-title">暂无可练习分类</view>
+    <view class="empty-copy">请先给材料绑定音频。</view>
+  </view>
+
+  <view wx:else class="category-list">
+    <view wx:for="{{categories}}" wx:key="id" class="category-row" data-id="{{item.id}}" bindtap="openCategory">
+      <view class="category-main">
+        <view class="category-name">{{item.name}}</view>
+        <view class="category-meta">{{item.materialCount}} 个可练习材料</view>
+      </view>
+      <van-icon name="arrow" />
+    </view>
+  </view>
+</view>

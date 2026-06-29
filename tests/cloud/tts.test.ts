@@ -1,6 +1,6 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { TencentTtsProvider } from '../cloudfunctions/_shared/tts/tencent';
+import { TencentTtsProvider } from '../../cloudfunctions/_shared/tts/tencent';
 
 test('TencentTtsProvider fails clearly when credentials are missing', async () => {
   const originalSecretId = process.env.TENCENT_SECRET_ID;

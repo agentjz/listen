@@ -1,0 +1,126 @@
+.practice-player-page {
+  padding-bottom: 48rpx;
+}
+
+.page-head {
+  padding: 24rpx 0 8rpx;
+}
+
+.practice-card {
+  overflow: hidden;
+  border: 1rpx solid #e3e7f3;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.practice-main {
+  padding: 34rpx 30rpx 28rpx;
+}
+
+.material-title {
+  color: #172033;
+  font-size: 36rpx;
+  font-weight: 700;
+  line-height: 50rpx;
+  overflow-wrap: break-word;
+}
+
+.material-meta {
+  margin-top: 10rpx;
+  color: #667085;
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1rpx solid #eef1f7;
+}
+
+.control-action {
+  display: flex;
+  min-width: 0;
+  height: 88rpx;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  color: #344054;
+  background: #ffffff;
+  font-size: 26rpx;
+  font-weight: 650;
+  line-height: 36rpx;
+}
+
+.control-action.primary {
+  color: #0284c7;
+  background: #f0f9ff;
+}
+
+.control-action:nth-child(2n) {
+  border-left: 1rpx solid #eef1f7;
+}
+
+.control-action:nth-child(n + 3) {
+  border-top: 1rpx solid #eef1f7;
+}
+
+.progress-row {
+  display: flex;
+  min-height: 76rpx;
+  align-items: center;
+  gap: 12rpx;
+  padding: 10rpx 22rpx 16rpx;
+  border-top: 1rpx solid #eef1f7;
+  background: #ffffff;
+}
+
+.time-text {
+  width: 72rpx;
+  flex: none;
+  color: #667085;
+  font-size: 22rpx;
+  line-height: 32rpx;
+  text-align: center;
+}
+
+.progress-slider {
+  min-width: 0;
+  flex: 1;
+}
+
+.content-panel {
+  padding: 28rpx;
+  border-top: 1rpx solid #eef1f7;
+  background: #f8fbff;
+}
+
+.content-text {
+  color: #172033;
+  font-size: 30rpx;
+  line-height: 50rpx;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.empty-state {
+  padding: 64rpx 32rpx;
+  border: 1rpx solid #e3e7f3;
+  border-radius: 8rpx;
+  background: #ffffff;
+  color: #667085;
+  font-size: 26rpx;
+  line-height: 38rpx;
+  text-align: center;
+}
+
+.empty-title {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 42rpx;
+}
+
+.empty-copy {
+  margin-top: 8rpx;
+}

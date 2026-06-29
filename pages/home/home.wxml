@@ -27,5 +27,10 @@
       <text class="entry-title">云端新建</text>
       <text class="entry-meta">{{cloudAvailable ? cloudMaterialCount + ' 个材料' : '云不可用'}}</text>
     </view>
+    <view class="entry-card wide" bindtap="goPractice">
+      <van-icon name="play-circle-o" />
+      <text class="entry-title">听写练习</text>
+      <text class="entry-meta">随机播放有音频材料</text>
+    </view>
   </view>
 </view>

@@ -15,6 +15,7 @@ Page<HomeData, {
   goCloudResources: () => void;
   goLocalCreate: () => void;
   goCloudCreate: () => void;
+  goPractice: () => void;
 }>({
   data: {
     isLoading: true,
@@ -64,5 +65,9 @@ Page<HomeData, {
 
   goCloudCreate() {
     wx.navigateTo({ url: '/pages/import/import?mode=cloud' });
+  },
+
+  goPractice() {
+    wx.navigateTo({ url: '/pages/practice/index' });
   }
 });

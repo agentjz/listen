@@ -6,9 +6,9 @@
   "license": "MIT",
   "scripts": {
     "generate:local-assets": "node scripts/generate-local-assets.js",
-    "build": "npm.cmd run generate:local-assets && tsc",
+    "build": "npm.cmd run generate:local-assets && node scripts/build-miniprogram.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test \"tests/**/*.test.ts\"",
     "check:boundaries": "node scripts/check-boundaries.js",
     "check:local-assets": "node scripts/check-local-assets.js",
     "verify": "npm.cmd run generate:local-assets && npm.cmd run typecheck && npm.cmd test && npm.cmd run check:boundaries && npm.cmd run check:local-assets"

@@ -1,6 +1,6 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildSaveMaterialRequest } from '../miniprogram/services/materialDraft';
+import { buildSaveMaterialRequest } from '../../miniprogram/services/materialDraft';
 
 test('buildSaveMaterialRequest trims content and uses title', () => {
   const request = buildSaveMaterialRequest({

@@ -1,0 +1,60 @@
+.practice-index-page {
+  padding-bottom: 48rpx;
+}
+
+.hero {
+  padding: 24rpx 0 8rpx;
+}
+
+.mode-panel {
+  padding: 24rpx;
+  border: 1rpx solid #e3e7f3;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.mode-title {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 42rpx;
+}
+
+.practice-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.practice-entry {
+  display: flex;
+  min-height: 128rpx;
+  min-width: 0;
+  align-items: center;
+  gap: 18rpx;
+  padding: 22rpx;
+  border: 1rpx solid #bae6fd;
+  border-radius: 8rpx;
+  color: #0284c7;
+  background: #f8fbff;
+}
+
+.entry-title {
+  min-width: 0;
+  flex: none;
+  color: #0284c7;
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 40rpx;
+}
+
+.entry-meta {
+  min-width: 0;
+  flex: 1;
+  color: #667085;
+  font-size: 24rpx;
+  line-height: 34rpx;
+  text-align: right;
+  overflow-wrap: break-word;
+}

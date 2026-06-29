@@ -6,6 +6,11 @@
     "pages/material-detail/material-detail",
     "pages/import/import",
     "pages/import-existing/import-existing",
+    "pages/practice/index",
+    "pages/practice/categories",
+    "pages/practice/groups",
+    "pages/practice/group-edit",
+    "pages/practice/player",
     "pages/admin/admin"
   ],
   "window": {

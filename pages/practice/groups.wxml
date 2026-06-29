@@ -1,0 +1,27 @@
+<view class="page practice-groups-page">
+  <view class="section page-head">
+    <view class="head-copy">
+      <view class="title">{{mode === 'local' ? '本地练习组' : '云端练习组'}}</view>
+      <view class="subtitle">练习组保存在当前设备，引用已有材料。</view>
+    </view>
+    <view class="create-action" bindtap="createGroup">新建</view>
+  </view>
+
+  <view wx:if="{{groups.length === 0}}" class="empty-state">
+    <view class="empty-title">暂无练习组</view>
+    <view class="empty-copy">新建后可从选定材料中随机练习。</view>
+  </view>
+
+  <view wx:else class="group-list">
+    <view wx:for="{{groups}}" wx:key="id" class="group-card">
+      <view class="group-main" data-id="{{item.id}}" bindtap="openGroup">
+        <view class="group-name">{{item.name}}</view>
+        <view class="group-meta">{{item.materialIds.length}} 个材料</view>
+      </view>
+      <view class="group-actions">
+        <view class="group-action" data-id="{{item.id}}" bindtap="editGroup">编辑</view>
+        <view class="group-action danger" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="deleteGroup">删除</view>
+      </view>
+    </view>
+  </view>
+</view>

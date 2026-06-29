@@ -1,5 +1,5 @@
 import { deleteMaterialByMode, loadSnapshotByMode, moveMaterialByMode, reorderMaterialByMode } from '../../miniprogram/services/runtimeData';
-import { AudioProgressState, restartListeningAudio, seekListeningAudio, toggleListeningAudio } from '../../miniprogram/services/audioPlayer';
+import { AudioProgressState, restartListeningAudio, seekListeningAudio, stopListeningAudio, toggleListeningAudio } from '../../miniprogram/services/audioPlayer';
 import { SourceLibrary } from '../../miniprogram/types/domain';
 import { DataMode, parseDataMode } from '../../miniprogram/types/runtime';
 import { buildMaterialListView, formatPlaybackTime, getReorderDirection, MaterialListCard } from '../../miniprogram/lib/materialListView';
@@ -116,8 +116,20 @@ Page<MaterialListData, {
     await this.load();
   },
 
+  onHide() {
+    stopListeningAudio();
+    this.resetProgress();
+  },
+
+  onUnload() {
+    stopListeningAudio();
+    this.resetProgress();
+  },
+
   async load() {
     try {
+      stopListeningAudio();
+      this.resetProgress();
       const snapshot = await loadSnapshotByMode(this.data.mode);
       const view = buildMaterialListView({
         libraryId: this.data.libraryId,

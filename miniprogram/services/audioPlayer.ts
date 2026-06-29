@@ -56,12 +56,9 @@ export function toggleListeningAudio(audio: ListeningAudio, hooks: AudioPlayerHo
 }
 
 export function playListeningAudio(audio: ListeningAudio, hooks: AudioPlayerHooks = {}): PlayListeningAudioResult {
-  if (activeAudioContext && activeAudioId !== audio.id) {
-    activeAudioContext.stop();
-    activeAudioContext.destroy();
-  }
+  stopListeningAudio(hooks);
 
-  const context = activeAudioContext && activeAudioId === audio.id ? activeAudioContext : wx.createInnerAudioContext();
+  const context = wx.createInnerAudioContext();
   activeAudioContext = context;
   activeAudioId = audio.id;
   activePlaybackState = 'playing';
@@ -113,17 +110,25 @@ export function playListeningAudio(audio: ListeningAudio, hooks: AudioPlayerHook
 }
 
 export function restartListeningAudio(audio: ListeningAudio, hooks: AudioPlayerHooks = {}): PlayListeningAudioResult {
-  if (activeAudioContext) {
-    activeAudioContext.stop();
-    activeAudioContext.destroy();
-    activeAudioContext = null;
-    activeAudioId = '';
-    activePlaybackState = 'stopped';
-  }
-
+  stopListeningAudio(hooks);
   const result = playListeningAudio(audio, hooks);
   debug('player.command=restart', hooks);
   return result;
+}
+
+export function stopListeningAudio(hooks: AudioPlayerHooks = {}): void {
+  if (!activeAudioContext) {
+    activeAudioId = '';
+    activePlaybackState = 'stopped';
+    return;
+  }
+
+  activeAudioContext.stop();
+  activeAudioContext.destroy();
+  activeAudioContext = null;
+  activeAudioId = '';
+  activePlaybackState = 'stopped';
+  debug('player.command=stop', hooks);
 }
 
 export function seekListeningAudio(audio: ListeningAudio, positionSeconds: number, hooks: AudioPlayerHooks = {}): PlayListeningAudioResult {

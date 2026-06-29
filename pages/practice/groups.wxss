@@ -1,0 +1,106 @@
+.practice-groups-page {
+  padding-bottom: 48rpx;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding-top: 24rpx;
+}
+
+.head-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.create-action {
+  width: 132rpx;
+  height: 64rpx;
+  flex: none;
+  border-radius: 8rpx;
+  color: #ffffff;
+  background: #38bdf8;
+  font-size: 26rpx;
+  font-weight: 650;
+  line-height: 64rpx;
+  text-align: center;
+}
+
+.group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.group-card {
+  overflow: hidden;
+  border: 1rpx solid #e3e7f3;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.group-main {
+  padding: 28rpx;
+}
+
+.group-name {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 42rpx;
+  overflow-wrap: break-word;
+}
+
+.group-meta {
+  margin-top: 6rpx;
+  color: #667085;
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.group-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1rpx solid #eef1f7;
+}
+
+.group-action {
+  height: 76rpx;
+  color: #344054;
+  font-size: 24rpx;
+  font-weight: 650;
+  line-height: 76rpx;
+  text-align: center;
+}
+
+.group-action + .group-action {
+  border-left: 1rpx solid #eef1f7;
+}
+
+.group-action.danger {
+  color: #b42318;
+}
+
+.empty-state {
+  padding: 64rpx 32rpx;
+  border: 1rpx solid #e3e7f3;
+  border-radius: 8rpx;
+  background: #ffffff;
+  color: #667085;
+  font-size: 26rpx;
+  line-height: 38rpx;
+  text-align: center;
+}
+
+.empty-title {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 42rpx;
+}
+
+.empty-copy {
+  margin-top: 8rpx;
+}

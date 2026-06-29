@@ -17,6 +17,7 @@ declare namespace WechatMiniprogram {
     data?: TData;
     onLoad?: (query?: Record<string, string | undefined>) => void | Promise<void>;
     onShow?: () => void | Promise<void>;
+    onHide?: () => void;
     onUnload?: () => void;
   }
 

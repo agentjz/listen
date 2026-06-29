@@ -1,9 +1,9 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ALL_RESOURCES_VIEW_ID, PUBLIC_LIBRARY_ID, UNFILED_LIBRARY_ID } from '../miniprogram/lib/libraries';
-import { buildMaterialListView, formatPlaybackTime } from '../miniprogram/lib/materialListView';
-import { getDragTargetIndex, moveItemPreview } from '../miniprogram/lib/dragOrder';
-import { ListeningAudio, Material, SourceLibrary } from '../miniprogram/types/domain';
+import { ALL_RESOURCES_VIEW_ID, PUBLIC_LIBRARY_ID, UNFILED_LIBRARY_ID } from '../../miniprogram/lib/libraries';
+import { buildMaterialListView, formatPlaybackTime } from '../../miniprogram/lib/materialListView';
+import { getDragTargetIndex, moveItemPreview } from '../../miniprogram/lib/dragOrder';
+import { ListeningAudio, Material, SourceLibrary } from '../../miniprogram/types/domain';
 
 const libraries: SourceLibrary[] = [
   {

@@ -1,0 +1,67 @@
+.practice-categories-page {
+  padding-bottom: 48rpx;
+}
+
+.page-head {
+  padding: 24rpx 0 8rpx;
+}
+
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.category-row {
+  display: flex;
+  min-height: 128rpx;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 26rpx;
+  border: 1rpx solid #e3e7f3;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.category-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.category-name {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 42rpx;
+  overflow-wrap: break-word;
+}
+
+.category-meta {
+  margin-top: 6rpx;
+  color: #667085;
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.empty-state {
+  padding: 64rpx 32rpx;
+  border: 1rpx solid #e3e7f3;
+  border-radius: 8rpx;
+  background: #ffffff;
+  color: #667085;
+  font-size: 26rpx;
+  line-height: 38rpx;
+  text-align: center;
+}
+
+.empty-title {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 42rpx;
+}
+
+.empty-copy {
+  margin-top: 8rpx;
+}

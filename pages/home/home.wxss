@@ -29,6 +29,10 @@
   line-height: 1.4;
 }
 
+.entry-card.wide {
+  grid-column: 1 / -1;
+}
+
 .entry-title {
   color: #0284c7;
   font-size: 32rpx;

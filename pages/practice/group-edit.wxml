@@ -1,0 +1,52 @@
+<view class="page practice-group-edit-page">
+  <view class="section page-head">
+    <view class="title">{{groupId ? '编辑练习组' : '新建练习组'}}</view>
+    <view class="subtitle">只显示已有音频的材料。</view>
+  </view>
+
+  <view class="section panel stack">
+    <input
+      class="name-input"
+      value="{{groupName}}"
+      bindinput="onNameInput"
+      placeholder="练习组名称"
+      placeholder-class="input-placeholder"
+    />
+  </view>
+
+  <view wx:if="{{isLoading}}" class="empty-state">正在加载</view>
+  <view wx:elif="{{materials.length === 0}}" class="empty-state">
+    <view class="empty-title">暂无可选材料</view>
+    <view class="empty-copy">请先给材料绑定音频。</view>
+  </view>
+
+  <view wx:else class="material-section">
+    <view class="batch-toolbar">
+      <view class="batch-count">已选择 {{selectedCount}} 个</view>
+      <view class="batch-actions">
+        <view class="batch-action" bindtap="selectAllMaterials">全选</view>
+        <view class="batch-action" bindtap="clearSelection">取消</view>
+      </view>
+    </view>
+
+    <view class="material-list">
+      <view
+        wx:for="{{materials}}"
+        wx:key="id"
+        class="{{item.isSelected ? 'material-row selected' : 'material-row'}}"
+        data-id="{{item.id}}"
+        bindtap="toggleMaterial"
+      >
+        <view class="material-check" data-id="{{item.id}}" catchtap="toggleMaterial">{{item.isSelected ? '✓' : ''}}</view>
+        <view class="material-main">
+          <view class="material-title">{{item.title}}</view>
+          <view class="material-meta">{{item.libraryName}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="{{isSaving ? 'save-action busy' : 'save-action'}}" bindtap="saveGroup">
+      {{isSaving ? '保存中' : '保存练习组'}}
+    </view>
+  </view>
+</view>

@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "分类随机",
+  "usingComponents": {
+    "van-icon": "@vant/weapp/icon/index"
+  }
+}

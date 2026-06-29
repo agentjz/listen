@@ -1,6 +1,6 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { isAdminOpenid } from '../miniprogram/lib/auth';
+import { isAdminOpenid } from '../../miniprogram/lib/auth';
 
 test('isAdminOpenid only allows configured openid', () => {
   assert.equal(isAdminOpenid('owner', ['owner']), true);

@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "听写练习",
+  "usingComponents": {
+    "van-icon": "@vant/weapp/icon/index"
+  }
+}

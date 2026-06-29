@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   clearLocalRepository,
@@ -12,9 +12,9 @@ import {
   reorderLocalMaterial,
   saveLocalMaterial,
   updateLocalMaterial
-} from '../miniprogram/services/localRepository';
-import { LOCAL_ASSET_MATERIALS } from '../miniprogram/generated/localAssets';
-import { PUBLIC_LIBRARY_ID, PUBLIC_LIBRARY_NAME, UNFILED_LIBRARY_ID, UNFILED_LIBRARY_NAME } from '../miniprogram/lib/libraries';
+} from '../../miniprogram/services/localRepository';
+import { LOCAL_ASSET_MATERIALS } from '../../miniprogram/generated/localAssets';
+import { PUBLIC_LIBRARY_ID, PUBLIC_LIBRARY_NAME, UNFILED_LIBRARY_ID, UNFILED_LIBRARY_NAME } from '../../miniprogram/lib/libraries';
 
 const storage = new Map<string, unknown>();
 

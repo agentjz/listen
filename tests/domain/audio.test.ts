@@ -1,6 +1,6 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { canPlayPreferably, createAudioCloudPath, detectAudioFormat } from '../miniprogram/lib/audio';
+import { canPlayPreferably, createAudioCloudPath, detectAudioFormat } from '../../miniprogram/lib/audio';
 
 test('detectAudioFormat accepts supported formats', () => {
   assert.equal(detectAudioFormat('a.mp3'), 'mp3');
