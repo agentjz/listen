@@ -1,8 +1,9 @@
 import { ReorderMaterialRequest, ReorderMaterialResponse } from '../../miniprogram/types/api';
-import { Material } from '../../miniprogram/types/domain';
+import { Material, SourceLibrary } from '../../miniprogram/types/domain';
 import { COLLECTIONS } from '../_shared/collections';
-import { getDatabase } from '../_shared/db';
+import { getDatabase, getOpenid } from '../_shared/db';
 import { fail, ok, toApiError } from '../_shared/response';
+import { isPublicLibraryKind } from '../_shared/libraries';
 
 export async function main(event: ReorderMaterialRequest): Promise<ReturnType<typeof ok<ReorderMaterialResponse>> | ReturnType<typeof fail>> {
   try {
@@ -11,13 +12,20 @@ export async function main(event: ReorderMaterialRequest): Promise<ReturnType<ty
     }
 
     const db = getDatabase();
-    const current = (await db.collection<Material>(COLLECTIONS.materials).where({ id: event.materialId }).get()).data[0];
+    const openid = getOpenid();
+    const current = (await db.collection<Material>(COLLECTIONS.materials).where({ id: event.materialId, ownerOpenid: openid, status: 'ready' }).get()).data[0];
     if (!current) {
       return fail('NOT_FOUND', '材料不存在');
     }
 
+    const library = (await db.collection<SourceLibrary>(COLLECTIONS.sourceLibraries).where({ id: current.libraryId }).get()).data[0];
+    if (isPublicLibraryKind(library?.kind ?? 'general')) {
+      return fail('FORBIDDEN', '公共资源不能排序');
+    }
+
     const siblingsResult = await db.collection<Material>(COLLECTIONS.materials).where({
       libraryId: current.libraryId,
+      ownerOpenid: openid,
       status: 'ready'
     }).get();
     const siblings = [...siblingsResult.data].sort((left, right) => {

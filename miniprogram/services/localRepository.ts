@@ -1,5 +1,21 @@
 import { buildDefaultMaterialTitle } from '../lib/materialTitle';
-import { LOCAL_ASSET_MATERIALS } from '../generated/localAssets';
+import { UNFILED_LIBRARY_ID, isPublicLibrary } from '../lib/libraries';
+import {
+  LOCAL_OPENID,
+  LOCAL_SCHEMA_VERSION,
+  LocalData,
+  nextLibrarySortOrder,
+  nextMaterialSortOrder,
+  normalizeLocalData,
+  resolveWritableLibraryId,
+  sortMaterials
+} from '../lib/localDataRules';
+import {
+  clearStoredLocalData,
+  createInitialLocalData,
+  readStoredLocalData,
+  writeStoredLocalData
+} from './localDataStore';
 import {
   DeleteLibraryResponse,
   DeleteMaterialResponse,
@@ -7,6 +23,7 @@ import {
   ReorderDirection,
   ReorderMaterialResponse,
   ReplaceListeningAudioResponse,
+  RenameLibraryResponse,
   SaveLibraryResponse,
   SaveMaterialResponse,
   SyncDataResponse,
@@ -14,23 +31,10 @@ import {
 } from '../types/api';
 import { AudioFormat, ListeningAudio, Material, SourceLibrary } from '../types/domain';
 
-const LOCAL_DATA_KEY = 'listen.localData';
-const LOCAL_SCHEMA_VERSION = 4;
-const LOCAL_LIBRARY_ID = 'local-library';
-const LOCAL_OPENID = 'local-user';
-
-interface LocalData {
-  schemaVersion: number;
-  libraries: SourceLibrary[];
-  materials: Material[];
-  listeningAudios: ListeningAudio[];
-}
-
 export interface SaveLocalMaterialInput {
   libraryId?: string;
   title?: string;
   content: string;
-  imageFileIds?: string[];
   now?: number;
 }
 
@@ -53,21 +57,17 @@ export function saveLocalMaterial(input: SaveLocalMaterialInput): SaveMaterialRe
   }
 
   const data = readLocalData();
+  const targetLibraryId = resolveWritableLibraryId(data, input.libraryId);
   const materialId = createLocalId('material', now);
   const material: Material = {
     id: materialId,
-    libraryId: input.libraryId || LOCAL_LIBRARY_ID,
+    libraryId: targetLibraryId,
     ownerOpenid: LOCAL_OPENID,
     title: input.title?.trim() || buildDefaultMaterialTitle(content, now),
     content,
     status: 'ready',
     audioCount: 0,
-    images: (input.imageFileIds ?? []).map((cloudFileId, index) => ({
-      id: createLocalId(`image-${index}`, now),
-      cloudFileId,
-      createdAt: now
-    })),
-    sortOrder: nextMaterialSortOrder(data.materials, input.libraryId || LOCAL_LIBRARY_ID),
+    sortOrder: nextMaterialSortOrder(data.materials, targetLibraryId),
     createdAt: now,
     updatedAt: now
   };
@@ -107,18 +107,53 @@ export function deleteLocalLibrary(libraryId: string): DeleteLibraryResponse {
     throw new Error('分类不存在');
   }
 
-  if (library.id === LOCAL_LIBRARY_ID) {
-    throw new Error('默认本地分类不能删除');
+  if (library.id === UNFILED_LIBRARY_ID) {
+    throw new Error('未归类材料不能删除');
   }
 
-  const activeMaterialCount = data.materials.filter((material) => material.libraryId === libraryId && material.status !== 'archived').length;
-  if (activeMaterialCount > 0) {
-    throw new Error('分类内还有材料，不能删除');
+  if (library.kind !== 'user') {
+    throw new Error('公共资源不能删除');
+  }
+
+  const now = Date.now();
+  const activeMaterials = data.materials.filter((material) => material.libraryId === libraryId && material.status !== 'archived');
+  for (const material of activeMaterials) {
+    material.libraryId = UNFILED_LIBRARY_ID;
+    material.updatedAt = now;
   }
 
   data.libraries = data.libraries.filter((item) => item.id !== libraryId);
   writeLocalData(data);
-  return { libraryId };
+  return {
+    libraryId,
+    movedMaterialCount: activeMaterials.length
+  };
+}
+
+export function renameLocalLibrary(libraryId: string, name: string, now = Date.now()): RenameLibraryResponse {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    throw new Error('请填写分类名称');
+  }
+
+  const data = readLocalData();
+  const library = data.libraries.find((item) => item.id === libraryId);
+  if (!library) {
+    throw new Error('分类不存在');
+  }
+
+  if (library.id === UNFILED_LIBRARY_ID) {
+    throw new Error('未归类材料不能重命名');
+  }
+
+  if (library.kind !== 'user') {
+    throw new Error('公共资源不能重命名');
+  }
+
+  library.name = trimmedName;
+  library.updatedAt = now;
+  writeLocalData(data);
+  return { library };
 }
 
 export function moveLocalMaterial(materialId: string, libraryId: string, now = Date.now()): MoveMaterialResponse {
@@ -128,9 +163,18 @@ export function moveLocalMaterial(materialId: string, libraryId: string, now = D
     throw new Error('目标分类不存在');
   }
 
+  if (isPublicLibrary(targetLibrary)) {
+    throw new Error('不能移动到公共资源');
+  }
+
   const material = data.materials.find((item) => item.id === materialId);
   if (!material) {
     throw new Error('材料不存在');
+  }
+
+  const sourceLibrary = data.libraries.find((library) => library.id === material.libraryId);
+  if (isPublicLibrary(sourceLibrary)) {
+    throw new Error('公共资源不能移动');
   }
 
   material.libraryId = libraryId;
@@ -157,6 +201,11 @@ export function updateLocalMaterial(
   const material = data.materials.find((item) => item.id === materialId && item.status !== 'archived');
   if (!material) {
     throw new Error('材料不存在');
+  }
+
+  const library = data.libraries.find((item) => item.id === material.libraryId);
+  if (isPublicLibrary(library)) {
+    throw new Error('公共资源不能编辑');
   }
 
   const now = input.now ?? Date.now();
@@ -186,6 +235,11 @@ export function replaceLocalMaterialAudio(
     throw new Error('材料不存在');
   }
 
+  const library = data.libraries.find((item) => item.id === material.libraryId);
+  if (isPublicLibrary(library)) {
+    throw new Error('公共资源不能替换音频');
+  }
+
   const now = input.now ?? Date.now();
   const listeningAudio: ListeningAudio = {
     id: createLocalId('audio', now),
@@ -213,6 +267,11 @@ export function reorderLocalMaterial(materialId: string, direction: ReorderDirec
     throw new Error('材料不存在');
   }
 
+  const library = data.libraries.find((item) => item.id === current.libraryId);
+  if (isPublicLibrary(library)) {
+    throw new Error('公共资源不能排序');
+  }
+
   const siblings = sortMaterials(data.materials.filter((material) => material.libraryId === current.libraryId && material.status !== 'archived'));
   const currentIndex = siblings.findIndex((material) => material.id === materialId);
   const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
@@ -236,6 +295,16 @@ export function reorderLocalMaterial(materialId: string, direction: ReorderDirec
 
 export function deleteLocalMaterial(materialId: string): DeleteMaterialResponse {
   const data = readLocalData();
+  const material = data.materials.find((item) => item.id === materialId);
+  if (!material) {
+    throw new Error('材料不存在');
+  }
+
+  const library = data.libraries.find((item) => item.id === material.libraryId);
+  if (isPublicLibrary(library)) {
+    throw new Error('公共资源不能删除');
+  }
+
   const deletedAudioCount = data.listeningAudios.filter((audio) => audio.materialId === materialId).length;
 
   data.materials = data.materials.filter((material) => material.id !== materialId);
@@ -248,18 +317,18 @@ export function deleteLocalMaterial(materialId: string): DeleteMaterialResponse 
   };
 }
 
-export function getLocalLibraryId(): string {
-  return LOCAL_LIBRARY_ID;
-}
-
 export function clearLocalRepository(): void {
-  wx.removeStorageSync(LOCAL_DATA_KEY);
+  clearStoredLocalData();
 }
 
 function readLocalData(): LocalData {
-  const stored = wx.getStorageSync<LocalData | null>(LOCAL_DATA_KEY);
+  const stored = readStoredLocalData();
   if (stored?.schemaVersion === LOCAL_SCHEMA_VERSION && stored.libraries?.length) {
-    return stored;
+    const normalized = normalizeLocalData(stored);
+    if (normalized.changed) {
+      writeLocalData(normalized.data);
+    }
+    return normalized.data;
   }
 
   const initialData = createInitialLocalData();
@@ -268,88 +337,9 @@ function readLocalData(): LocalData {
 }
 
 function writeLocalData(data: LocalData): void {
-  wx.setStorageSync(LOCAL_DATA_KEY, data);
-}
-
-function createInitialLocalData(): LocalData {
-  const now = Date.now();
-  const materials: Material[] = LOCAL_ASSET_MATERIALS.map((asset, index) => ({
-    id: asset.id,
-    libraryId: LOCAL_LIBRARY_ID,
-    ownerOpenid: LOCAL_OPENID,
-    title: asset.title,
-    content: asset.content,
-    status: 'ready',
-    audioCount: asset.audio ? 1 : 0,
-    images: asset.imageCloudFileId
-      ? [
-          {
-            id: `${asset.id}-image`,
-            cloudFileId: asset.imageCloudFileId,
-            createdAt: now
-          }
-        ]
-      : [],
-    sortOrder: (index + 1) * 1000,
-    createdAt: now,
-    updatedAt: now
-  }));
-  const listeningAudios: ListeningAudio[] = LOCAL_ASSET_MATERIALS.flatMap((asset) =>
-    asset.audio
-      ? [
-          {
-            id: `${asset.id}-audio`,
-            materialId: asset.id,
-            sourceKind: 'upload',
-            format: asset.audio.format,
-            cloudFileId: asset.audio.cloudFileId,
-            createdAt: now,
-            updatedAt: now
-          }
-        ]
-      : []
-  );
-
-  return {
-    schemaVersion: LOCAL_SCHEMA_VERSION,
-    libraries: [
-      {
-        id: LOCAL_LIBRARY_ID,
-        name: '本地材料',
-        kind: 'user',
-        ownerOpenid: LOCAL_OPENID,
-        description: '只保存在当前设备的小程序缓存中',
-        sortOrder: 0,
-        createdAt: now,
-        updatedAt: now
-      }
-    ],
-    materials,
-    listeningAudios
-  };
+  writeStoredLocalData(data);
 }
 
 function createLocalId(prefix: string, now: number): string {
   return `local-${prefix}-${now}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function sortMaterials(materials: Material[]): Material[] {
-  return [...materials].sort((left, right) => {
-    if (left.sortOrder !== right.sortOrder) {
-      return left.sortOrder - right.sortOrder;
-    }
-
-    return left.createdAt - right.createdAt;
-  });
-}
-
-function nextLibrarySortOrder(libraries: SourceLibrary[]): number {
-  const max = libraries.reduce((value, library) => Math.max(value, library.sortOrder), 0);
-  return max + 1000;
-}
-
-function nextMaterialSortOrder(materials: Material[], libraryId: string): number {
-  const sameLibrary = materials.filter((material) => material.libraryId === libraryId && material.status !== 'archived');
-  const min = sameLibrary.reduce((value, material) => Math.min(value, material.sortOrder), 0);
-  return min - 1000;
 }

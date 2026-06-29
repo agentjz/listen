@@ -1,7 +1,6 @@
 import {
   ListeningAudio,
   Material,
-  MaterialImage,
   SourceLibrary
 } from './domain';
 
@@ -34,7 +33,6 @@ export interface SaveMaterialRequest {
   libraryId: string;
   title?: string;
   content: string;
-  imageFileIds?: string[];
 }
 
 export interface SaveMaterialResponse {
@@ -74,6 +72,16 @@ export interface DeleteLibraryRequest {
 
 export interface DeleteLibraryResponse {
   libraryId: string;
+  movedMaterialCount: number;
+}
+
+export interface RenameLibraryRequest {
+  libraryId: string;
+  name: string;
+}
+
+export interface RenameLibraryResponse {
+  library: SourceLibrary;
 }
 
 export type ReorderDirection = 'up' | 'down';
@@ -135,5 +143,4 @@ export interface AdminUpdateRequest {
 export interface AdminUpdateResponse {
   library?: SourceLibrary;
   material?: Material;
-  images?: MaterialImage[];
 }

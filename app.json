@@ -5,6 +5,7 @@
     "pages/materials/materials",
     "pages/material-detail/material-detail",
     "pages/import/import",
+    "pages/import-existing/import-existing",
     "pages/admin/admin"
   ],
   "window": {

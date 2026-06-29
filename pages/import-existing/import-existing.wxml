@@ -1,0 +1,25 @@
+<view class="page import-existing-page">
+  <view class="section page-head">
+    <view class="title">导入材料</view>
+    <view class="subtitle">从未归类材料中选择，移动到“{{targetLibraryName}}”。</view>
+  </view>
+
+  <view wx:if="{{isLoading}}" class="empty-state">正在加载</view>
+
+  <view wx:elif="{{candidates.length === 0}}" class="empty-state">
+    <view class="empty-title">未归类材料为空</view>
+    <view class="empty-copy">先新建材料，再回到分类中导入。</view>
+  </view>
+
+  <view wx:else class="candidate-list">
+    <view wx:for="{{candidates}}" wx:key="id" class="candidate-row">
+      <view class="candidate-main">
+        <view class="candidate-title">{{item.title}}</view>
+        <view class="candidate-copy">{{item.content}}</view>
+      </view>
+      <view class="candidate-action" data-id="{{item.id}}" bindtap="importMaterial">
+        {{item.isMoving ? '导入中' : '导入'}}
+      </view>
+    </view>
+  </view>
+</view>

@@ -6,7 +6,6 @@ export interface MaterialDraftInput {
   libraryId?: string;
   title?: string;
   content: string;
-  imageFileIds?: string[];
   now?: number;
 }
 
@@ -25,8 +24,7 @@ export function buildSaveMaterialRequest(input: MaterialDraftInput): SaveMateria
   return {
     libraryId: input.libraryId,
     title: input.title?.trim() || buildDefaultMaterialTitle(content, now),
-    content,
-    imageFileIds: input.imageFileIds ?? []
+    content
   };
 }
 

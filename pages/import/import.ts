@@ -1,6 +1,5 @@
 import { loadSnapshotByMode, saveDraftMaterialByMode, syncCloudData } from '../../miniprogram/services/runtimeData';
 import { chooseAndReplaceMaterialAudio } from '../../miniprogram/services/upload';
-import { SourceLibrary } from '../../miniprogram/types/domain';
 import { DataMode, parseDataMode } from '../../miniprogram/types/runtime';
 
 interface ImportData {
@@ -10,8 +9,6 @@ interface ImportData {
   content: string;
   audioFileName: string;
   pendingAudioPath: string;
-  libraryId: string;
-  libraries: SourceLibrary[];
   isSaving: boolean;
 }
 
@@ -21,7 +18,6 @@ Page<ImportData, {
   onContentInput: (event: { detail: { value: string } }) => void;
   chooseAudio: () => Promise<void>;
   clearAudio: () => void;
-  chooseLibrary: (event: { currentTarget: { dataset: { id: string } } }) => void;
   saveMaterial: () => Promise<void>;
 }>({
   data: {
@@ -31,8 +27,6 @@ Page<ImportData, {
     content: '',
     audioFileName: '',
     pendingAudioPath: '',
-    libraryId: '',
-    libraries: [],
     isSaving: false
   },
 
@@ -44,13 +38,8 @@ Page<ImportData, {
   async load() {
     try {
       const snapshot = await loadSnapshotByMode(this.data.mode);
-      const libraries = snapshot.data.libraries
-        .filter((library) => library.kind === 'user')
-        .sort((left, right) => left.sortOrder - right.sortOrder);
       this.setData?.({
-        openid: snapshot.session.openid,
-        libraries,
-        libraryId: libraries[0]?.id ?? ''
+        openid: snapshot.session.openid
       });
     } catch (error) {
       wx.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' });
@@ -93,15 +82,10 @@ Page<ImportData, {
     });
   },
 
-  chooseLibrary(event) {
-    this.setData?.({ libraryId: event.currentTarget.dataset.id });
-  },
-
   async saveMaterial() {
     try {
       this.setData?.({ isSaving: true });
       const saved = await saveDraftMaterialByMode(this.data.mode, {
-        libraryId: this.data.libraryId,
         title: this.data.title,
         content: this.data.content
       });
@@ -118,7 +102,7 @@ Page<ImportData, {
         await syncCloudData();
       }
       wx.showToast({ title: '已保存', icon: 'success' });
-      wx.navigateTo({ url: `/pages/materials/materials?mode=${this.data.mode}&libraryId=${this.data.libraryId}` });
+      wx.navigateTo({ url: `/pages/materials/materials?mode=${this.data.mode}&libraryId=${saved.material.libraryId}` });
     } catch (error) {
       wx.showToast({ title: error instanceof Error ? error.message : '保存失败', icon: 'none' });
     } finally {

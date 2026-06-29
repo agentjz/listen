@@ -1,11 +1,14 @@
 import { callCloudFunction } from '../../miniprogram/services/cloud';
 import { loadSnapshotByMode, syncCloudData, updateMaterialByMode } from '../../miniprogram/services/runtimeData';
 import { chooseAndReplaceMaterialAudio } from '../../miniprogram/services/upload';
+import { isPublicLibrary } from '../../miniprogram/lib/libraries';
 import { ListeningAudio, Material } from '../../miniprogram/types/domain';
 import { DataMode, parseDataMode } from '../../miniprogram/types/runtime';
 
 interface DetailData {
   mode: DataMode;
+  action: 'view' | 'edit';
+  isEditing: boolean;
   openid: string;
   materialId: string;
   material: Material | null;
@@ -27,6 +30,8 @@ Page<DetailData, {
 }>({
   data: {
     mode: 'local',
+    action: 'view',
+    isEditing: false,
     openid: '',
     materialId: '',
     material: null,
@@ -39,7 +44,13 @@ Page<DetailData, {
   },
 
   async onLoad(query) {
-    this.setData({ mode: parseDataMode(query?.mode), materialId: query?.materialId ?? '' });
+    const action = query?.action === 'edit' ? 'edit' : 'view';
+    this.setData({
+      mode: parseDataMode(query?.mode),
+      action,
+      isEditing: action === 'edit',
+      materialId: query?.materialId ?? ''
+    });
     await this.load();
   },
 
@@ -48,13 +59,16 @@ Page<DetailData, {
       const snapshot = await loadSnapshotByMode(this.data.mode);
       const material = snapshot.data.materials.find((item) => item.id === this.data.materialId) ?? null;
       const audios = snapshot.data.listeningAudios.filter((audio) => audio.materialId === this.data.materialId);
+      const library = snapshot.data.libraries.find((item) => item.id === material?.libraryId);
+      const canEdit = !!material && !isPublicLibrary(library);
 
       this.setData({
         openid: snapshot.session.openid,
         material,
         titleInput: material?.title ?? '',
         contentInput: material?.content ?? '',
-        audios
+        audios,
+        isEditing: this.data.action === 'edit' && canEdit
       });
     } catch (error) {
       wx.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' });

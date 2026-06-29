@@ -8,6 +8,7 @@ import {
   loadLocalSnapshot,
   moveLocalMaterial,
   replaceLocalMaterialAudio,
+  renameLocalLibrary,
   reorderLocalMaterial,
   saveLocalMaterial,
   updateLocalMaterial
@@ -21,6 +22,7 @@ import {
   ReorderDirection,
   ReorderMaterialResponse,
   ReplaceListeningAudioResponse,
+  RenameLibraryResponse,
   SaveLibraryResponse,
   SaveMaterialResponse,
   SyncDataRequest,
@@ -28,6 +30,7 @@ import {
   UpdateMaterialResponse
 } from '../types/api';
 import { AudioFormat } from '../types/domain';
+import { UNFILED_LIBRARY_ID } from '../lib/libraries';
 
 export interface AppSnapshot {
   session: LoginResponse;
@@ -60,11 +63,16 @@ export async function syncCloudData(request: SyncDataRequest = {}): Promise<Sync
 }
 
 export async function saveDraftMaterialByMode(mode: DataMode, input: MaterialDraftInput): Promise<SaveMaterialResponse> {
+  const unfiledInput = {
+    ...input,
+    libraryId: UNFILED_LIBRARY_ID
+  };
+
   if (mode === 'local') {
-    return saveLocalMaterial(input);
+    return saveLocalMaterial(unfiledInput);
   }
 
-  return callCloudFunction<SaveMaterialResponse>('saveMaterial', buildSaveMaterialRequest(input));
+  return callCloudFunction<SaveMaterialResponse>('saveMaterial', buildSaveMaterialRequest(unfiledInput));
 }
 
 export async function saveLibraryByMode(mode: DataMode, name: string): Promise<SaveLibraryResponse> {
@@ -81,6 +89,14 @@ export async function deleteLibraryByMode(mode: DataMode, libraryId: string): Pr
   }
 
   return callCloudFunction<DeleteLibraryResponse>('deleteLibrary', { libraryId });
+}
+
+export async function renameLibraryByMode(mode: DataMode, libraryId: string, name: string): Promise<RenameLibraryResponse> {
+  if (mode === 'local') {
+    return renameLocalLibrary(libraryId, name);
+  }
+
+  return callCloudFunction<RenameLibraryResponse>('renameLibrary', { libraryId, name });
 }
 
 export async function moveMaterialByMode(mode: DataMode, materialId: string, libraryId: string): Promise<MoveMaterialResponse> {

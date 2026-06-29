@@ -39,9 +39,12 @@ declare namespace WechatMiniprogram {
     duration: number;
     play(): void;
     pause(): void;
+    seek(position: number): void;
     stop(): void;
     destroy(): void;
     onPlay(callback: () => void): void;
+    onPause(callback: () => void): void;
+    onTimeUpdate(callback: () => void): void;
     onEnded(callback: () => void): void;
     onError(callback: (error: { errMsg: string }) => void): void;
   }
@@ -55,7 +58,6 @@ declare namespace WechatMiniprogram {
     showModal(options: { title: string; content: string; showCancel?: boolean }): Promise<{ confirm: boolean; cancel: boolean }>;
     showActionSheet(options: { itemList: string[] }): Promise<{ tapIndex: number }>;
     chooseMessageFile(options: { count: number; type: 'file'; extension?: string[] }): Promise<{ tempFiles: Array<{ path: string; name: string; size: number }> }>;
-    chooseMedia(options: { count: number; mediaType: Array<'image' | 'video'>; sourceType?: Array<'album' | 'camera'> }): Promise<{ tempFiles: Array<{ tempFilePath: string; size: number }> }>;
     getFileSystemManager(): FileSystemManager;
     getStorageSync<T = unknown>(key: string): T;
     setStorageSync<T = unknown>(key: string, data: T): void;

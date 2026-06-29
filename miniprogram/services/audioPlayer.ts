@@ -6,6 +6,7 @@ export interface AudioPlayerHooks {
   onEnded?: () => void;
   onPlay?: () => void;
   onPause?: () => void;
+  onTimeUpdate?: (state: AudioProgressState) => void;
 }
 
 export interface PlayListeningAudioResult {
@@ -16,6 +17,12 @@ export interface PlayListeningAudioResult {
 
 export type AudioPlaybackState = 'playing' | 'paused' | 'stopped';
 
+export interface AudioProgressState {
+  currentTime: number;
+  duration: number;
+  progressPercent: number;
+}
+
 let activeAudioContext: WechatMiniprogram.InnerAudioContext | null = null;
 let activeAudioId = '';
 let activePlaybackState: AudioPlaybackState = 'stopped';
@@ -24,7 +31,7 @@ export function toggleListeningAudio(audio: ListeningAudio, hooks: AudioPlayerHo
   if (activeAudioContext && activeAudioId === audio.id && activePlaybackState === 'playing') {
     activeAudioContext.pause();
     activePlaybackState = 'paused';
-    hooks.onDebug?.('player.command=pause');
+    debug('player.command=pause', hooks);
     hooks.onPause?.();
     return {
       src: audio.cloudFileId,
@@ -36,7 +43,7 @@ export function toggleListeningAudio(audio: ListeningAudio, hooks: AudioPlayerHo
   if (activeAudioContext && activeAudioId === audio.id && activePlaybackState === 'paused') {
     activeAudioContext.play();
     activePlaybackState = 'playing';
-    hooks.onDebug?.('player.command=resume');
+    debug('player.command=resume', hooks);
     hooks.onPlay?.();
     return {
       src: audio.cloudFileId,
@@ -61,31 +68,42 @@ export function playListeningAudio(audio: ListeningAudio, hooks: AudioPlayerHook
   context.src = audio.cloudFileId;
   context.playbackRate = 1;
 
-  hooks.onDebug?.(`audio.id=${audio.id}`);
-  hooks.onDebug?.(`audio.src=${audio.cloudFileId}`);
-  hooks.onDebug?.(`audio.format=${audio.format}`);
+  debug(`audio.id=${audio.id}`, hooks);
+  debug(`audio.src=${audio.cloudFileId}`, hooks);
+  debug(`audio.format=${audio.format}`, hooks);
 
   context.onPlay(() => {
     activePlaybackState = 'playing';
-    hooks.onDebug?.('player.event=play');
+    debug('player.event=play', hooks);
     hooks.onPlay?.();
+  });
+
+  context.onPause(() => {
+    activePlaybackState = 'paused';
+    debug('player.event=pause', hooks);
+    hooks.onPause?.();
+  });
+
+  context.onTimeUpdate(() => {
+    hooks.onTimeUpdate?.(readProgressState(context));
   });
 
   context.onEnded(() => {
     activePlaybackState = 'stopped';
-    hooks.onDebug?.('player.event=ended');
+    debug('player.event=ended', hooks);
     hooks.onEnded?.();
   });
 
   context.onError((error) => {
     activePlaybackState = 'stopped';
     const message = error.errMsg || 'unknown audio error';
+    console.error('[audioPlayer]', message);
     hooks.onDebug?.(`player.error=${message}`);
     hooks.onError?.(message);
   });
 
   context.play();
-  hooks.onDebug?.('player.command=play');
+  debug('player.command=play', hooks);
 
   return {
     src: audio.cloudFileId,
@@ -95,19 +113,31 @@ export function playListeningAudio(audio: ListeningAudio, hooks: AudioPlayerHook
 }
 
 export function restartListeningAudio(audio: ListeningAudio, hooks: AudioPlayerHooks = {}): PlayListeningAudioResult {
-  const result = activeAudioContext && activeAudioId === audio.id ? playActiveAudioFromStart(audio, hooks) : playListeningAudio(audio, hooks);
-  hooks.onDebug?.('player.command=restart');
+  if (activeAudioContext) {
+    activeAudioContext.stop();
+    activeAudioContext.destroy();
+    activeAudioContext = null;
+    activeAudioId = '';
+    activePlaybackState = 'stopped';
+  }
+
+  const result = playListeningAudio(audio, hooks);
+  debug('player.command=restart', hooks);
   return result;
 }
 
-function playActiveAudioFromStart(audio: ListeningAudio, hooks: AudioPlayerHooks): PlayListeningAudioResult {
-  if (!activeAudioContext) {
-    return playListeningAudio(audio, hooks);
+export function seekListeningAudio(audio: ListeningAudio, positionSeconds: number, hooks: AudioPlayerHooks = {}): PlayListeningAudioResult {
+  if (!activeAudioContext || activeAudioId !== audio.id) {
+    const result = playListeningAudio(audio, hooks);
+    activeAudioContext?.seek(Math.max(0, positionSeconds));
+    debug(`player.command=seek position=${positionSeconds}`, hooks);
+    return result;
   }
 
-  activeAudioContext.currentTime = 0;
+  activeAudioContext.seek(Math.max(0, positionSeconds));
   activeAudioContext.play();
   activePlaybackState = 'playing';
+  debug(`player.command=seek position=${positionSeconds}`, hooks);
   hooks.onPlay?.();
 
   return {
@@ -115,4 +145,16 @@ function playActiveAudioFromStart(audio: ListeningAudio, hooks: AudioPlayerHooks
     format: audio.format,
     state: activePlaybackState
   };
+}
+
+function readProgressState(context: WechatMiniprogram.InnerAudioContext): AudioProgressState {
+  const currentTime = Number.isFinite(context.currentTime) ? Math.max(0, context.currentTime) : 0;
+  const duration = Number.isFinite(context.duration) ? Math.max(0, context.duration) : 0;
+  const progressPercent = duration > 0 ? Math.min(100, Math.max(0, Math.round((currentTime / duration) * 100))) : 0;
+  return { currentTime, duration, progressPercent };
+}
+
+function debug(message: string, hooks: AudioPlayerHooks): void {
+  console.info('[audioPlayer]', message);
+  hooks.onDebug?.(message);
 }

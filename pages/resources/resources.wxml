@@ -7,6 +7,35 @@
     <view class="manage-toggle" bindtap="toggleManage">{{isManaging ? '完成' : '管理'}}</view>
   </view>
 
+  <view class="section search-panel">
+    <view class="search-bar">
+      <input
+        class="search-input"
+        value="{{searchKeyword}}"
+        bindinput="onSearchInput"
+        confirm-type="search"
+        bindconfirm="submitSearch"
+        placeholder="搜索标题或正文"
+        placeholder-class="input-placeholder"
+      />
+      <view class="search-button" bindtap="submitSearch">搜索</view>
+    </view>
+    <view wx:if="{{searchResults.length > 0}}" class="search-results">
+      <view
+        wx:for="{{searchResults}}"
+        wx:key="id"
+        class="search-result"
+        data-id="{{item.id}}"
+        data-library-id="{{item.libraryId}}"
+        bindtap="openSearchResult"
+      >
+        <view class="search-title">{{item.title}}</view>
+        <view class="search-meta">{{item.libraryName}} · {{item.hasAudio ? '有音频' : '阅读材料'}}</view>
+      </view>
+    </view>
+    <view wx:if="{{searchKeyword && searchResults.length === 0}}" class="search-empty">没有找到材料</view>
+  </view>
+
   <view wx:if="{{isManaging}}" class="section panel stack">
     <input
       class="name-input"
@@ -20,12 +49,30 @@
 
   <view class="stack">
     <view wx:for="{{resources}}" wx:key="id" class="resource-row">
-      <view class="resource-main" data-id="{{item.id}}" bindtap="openMaterials">
+      <view wx:if="{{editingLibraryId === item.id}}" class="resource-edit">
+        <input
+          class="rename-input"
+          value="{{editingLibraryName}}"
+          bindinput="onRenameInput"
+          placeholder="分类名称"
+          placeholder-class="input-placeholder"
+        />
+        <view class="rename-actions">
+          <van-button color="#38bdf8" size="small" loading="{{isRenaming}}" bindtap="saveRename">保存</van-button>
+          <van-button plain color="#667085" size="small" bindtap="cancelRename">取消</van-button>
+        </view>
+      </view>
+      <view wx:else class="resource-main" data-id="{{item.id}}" bindtap="openMaterials">
         <view class="resource-name">{{item.name}}</view>
         <view class="resource-meta">{{item.materialCount}} 个材料</view>
       </view>
-      <view wx:if="{{isManaging}}" class="resource-delete" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="deleteLibrary">
-        <van-icon name="delete-o" />
+      <view wx:if="{{isManaging && editingLibraryId !== item.id && (item.canRename || item.canDelete)}}" class="resource-actions">
+        <view wx:if="{{item.canRename}}" class="resource-icon-action" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="startRename">
+          <van-icon name="edit" />
+        </view>
+        <view wx:if="{{item.canDelete}}" class="resource-icon-action danger" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="deleteLibrary">
+          <van-icon name="delete-o" />
+        </view>
       </view>
       <van-icon wx:else name="arrow" />
     </view>

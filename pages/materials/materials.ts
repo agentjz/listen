@@ -1,17 +1,19 @@
 import { deleteMaterialByMode, loadSnapshotByMode, moveMaterialByMode, reorderMaterialByMode } from '../../miniprogram/services/runtimeData';
-import { restartListeningAudio, toggleListeningAudio } from '../../miniprogram/services/audioPlayer';
-import { ListeningAudio, Material, SourceLibrary } from '../../miniprogram/types/domain';
+import { AudioProgressState, restartListeningAudio, seekListeningAudio, toggleListeningAudio } from '../../miniprogram/services/audioPlayer';
+import { SourceLibrary } from '../../miniprogram/types/domain';
 import { DataMode, parseDataMode } from '../../miniprogram/types/runtime';
-
-interface MaterialCard extends Material {
-  hasAudio: boolean;
-  audio: ListeningAudio | null;
-  isDragging?: boolean;
-}
+import { buildMaterialListView, formatPlaybackTime, getReorderDirection, MaterialListCard } from '../../miniprogram/lib/materialListView';
+import { getDragTargetIndex, moveItemPreview } from '../../miniprogram/lib/dragOrder';
 
 interface MaterialListData {
   mode: DataMode;
   libraryId: string;
+  libraryName: string;
+  highlightMaterialId: string;
+  isUnfiledLibrary: boolean;
+  isPublicLibrary: boolean;
+  isAllResources: boolean;
+  primaryManageActionText: string;
   isManaging: boolean;
   isWritingOrder: boolean;
   draggingMaterialId: string;
@@ -21,9 +23,15 @@ interface MaterialListData {
   dragItemHeight: number;
   playingMaterialId: string;
   pausedMaterialId: string;
-  debugLines: string[];
+  progressMaterialId: string;
+  currentTime: number;
+  duration: number;
+  progressPercent: number;
+  currentTimeText: string;
+  durationText: string;
+  isSeeking: boolean;
   libraries: SourceLibrary[];
-  materials: MaterialCard[];
+  materials: MaterialListCard[];
 }
 
 interface MaterialTouchEvent {
@@ -40,18 +48,23 @@ interface MaterialTouchEvent {
 Page<MaterialListData, {
   load: () => Promise<void>;
   toggleManage: () => void;
-  goImport: () => void;
+  goPrimaryManageAction: () => void;
   openDetail: (event: { currentTarget: { dataset: { id: string } } }) => void;
+  editMaterial: (event: { currentTarget: { dataset: { id: string } } }) => void;
   playMaterial: (event: { currentTarget: { dataset: { id: string } } }) => void;
   restartMaterial: (event: { currentTarget: { dataset: { id: string } } }) => void;
+  onProgressChanging: (event: { currentTarget: { dataset: { id: string } }; detail: { value: number } }) => void;
+  onProgressChanged: (event: { currentTarget: { dataset: { id: string } }; detail: { value: number } }) => void;
   moveMaterial: (event: { currentTarget: { dataset: { id: string } } }) => Promise<void>;
-  appendDebug: (message: string) => void;
+  updateProgress: (materialId: string, state: AudioProgressState) => void;
+  resetProgress: () => void;
+  formatTime: (seconds: number) => string;
   buildAudioHooks: (materialId: string) => {
-    onDebug: (message: string) => void;
     onError: (message: string) => void;
     onEnded: () => void;
     onPlay: () => void;
     onPause: () => void;
+    onTimeUpdate: (state: AudioProgressState) => void;
   };
   onDragStart: (event: MaterialTouchEvent) => void;
   onDragMove: (event: MaterialTouchEvent) => void;
@@ -64,6 +77,12 @@ Page<MaterialListData, {
   data: {
     mode: 'local',
     libraryId: '',
+    libraryName: '',
+    highlightMaterialId: '',
+    isUnfiledLibrary: false,
+    isPublicLibrary: false,
+    isAllResources: false,
+    primaryManageActionText: '新建材料',
     isManaging: false,
     isWritingOrder: false,
     draggingMaterialId: '',
@@ -73,13 +92,23 @@ Page<MaterialListData, {
     dragItemHeight: 160,
     playingMaterialId: '',
     pausedMaterialId: '',
-    debugLines: [],
+    progressMaterialId: '',
+    currentTime: 0,
+    duration: 0,
+    progressPercent: 0,
+    currentTimeText: '00:00',
+    durationText: '00:00',
+    isSeeking: false,
     libraries: [],
     materials: []
   },
 
   async onLoad(query) {
-    this.setData({ mode: parseDataMode(query?.mode), libraryId: query?.libraryId ?? '' });
+    this.setData({
+      mode: parseDataMode(query?.mode),
+      libraryId: query?.libraryId ?? '',
+      highlightMaterialId: query?.highlightMaterialId ?? ''
+    });
     await this.load();
   },
 
@@ -90,36 +119,44 @@ Page<MaterialListData, {
   async load() {
     try {
       const snapshot = await loadSnapshotByMode(this.data.mode);
-      const audiosByMaterial = new Map<string, ListeningAudio>();
-      for (const audio of snapshot.data.listeningAudios) {
-        if (!audiosByMaterial.has(audio.materialId)) {
-          audiosByMaterial.set(audio.materialId, audio);
-        }
-      }
-      const materials = snapshot.data.materials
-        .filter((material) => material.libraryId === this.data.libraryId && material.status !== 'archived')
-        .sort((left, right) => {
-          if (left.sortOrder !== right.sortOrder) {
-            return left.sortOrder - right.sortOrder;
-          }
-
-          return left.createdAt - right.createdAt;
-        })
-        .map((material) => ({
-          ...material,
-          hasAudio: audiosByMaterial.has(material.id),
-          audio: audiosByMaterial.get(material.id) ?? null
-        }));
-      this.setData({
-        libraries: snapshot.data.libraries.filter((library) => library.kind === 'user'),
-        materials
+      const view = buildMaterialListView({
+        libraryId: this.data.libraryId,
+        highlightMaterialId: this.data.highlightMaterialId,
+        libraries: snapshot.data.libraries,
+        materials: snapshot.data.materials,
+        listeningAudios: snapshot.data.listeningAudios
       });
+      this.setData({
+        libraryName: view.libraryName,
+        isUnfiledLibrary: view.isUnfiledLibrary,
+        isAllResources: view.isAllResources,
+        isPublicLibrary: view.isPublicLibrary,
+        primaryManageActionText: view.primaryManageActionText,
+        libraries: snapshot.data.libraries.filter((library) => library.kind === 'user'),
+        materials: view.materials
+      });
+      if (this.data.highlightMaterialId) {
+        setTimeout(() => {
+          this.setData({
+            materials: this.data.materials.map((material) => ({
+              ...material,
+              isHighlighted: false
+            })),
+            highlightMaterialId: ''
+          });
+        }, 1600);
+      }
     } catch (error) {
       wx.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' });
     }
   },
 
   toggleManage() {
+    if (this.data.isPublicLibrary) {
+      wx.showToast({ title: '公共资源无法管理', icon: 'none' });
+      return;
+    }
+
     this.setData({
       isManaging: !this.data.isManaging,
       draggingMaterialId: '',
@@ -128,21 +165,33 @@ Page<MaterialListData, {
     });
   },
 
-  goImport() {
-    wx.navigateTo({ url: `/pages/import/import?mode=${this.data.mode}` });
+  goPrimaryManageAction() {
+    if (this.data.isAllResources) {
+      wx.showToast({ title: '请进入具体分类管理', icon: 'none' });
+      return;
+    }
+
+    if (this.data.isUnfiledLibrary) {
+      wx.navigateTo({ url: `/pages/import/import?mode=${this.data.mode}` });
+      return;
+    }
+
+    wx.navigateTo({ url: `/pages/import-existing/import-existing?mode=${this.data.mode}&targetLibraryId=${this.data.libraryId}` });
   },
 
   openDetail(event) {
-    wx.navigateTo({ url: `/pages/material-detail/material-detail?mode=${this.data.mode}&materialId=${event.currentTarget.dataset.id}` });
+    wx.navigateTo({ url: `/pages/material-detail/material-detail?mode=${this.data.mode}&materialId=${event.currentTarget.dataset.id}&action=view` });
+  },
+
+  editMaterial(event) {
+    wx.navigateTo({ url: `/pages/material-detail/material-detail?mode=${this.data.mode}&materialId=${event.currentTarget.dataset.id}&action=edit` });
   },
 
   playMaterial(event) {
     const materialId = event.currentTarget.dataset.id;
     const material = this.data.materials.find((item) => item.id === materialId);
-    this.appendDebug(`play.request materialId=${materialId}`);
 
     if (!material?.audio) {
-      this.appendDebug('play.skip reason=audio_not_found');
       wx.showToast({ title: '当前材料没有音频，可查看原文', icon: 'none' });
       return;
     }
@@ -150,55 +199,115 @@ Page<MaterialListData, {
     const result = toggleListeningAudio(material.audio, this.buildAudioHooks(materialId));
     if (result.state === 'playing') {
       this.setData({ playingMaterialId: materialId, pausedMaterialId: '' });
-      this.appendDebug(`play.started src=${result.src}`);
       return;
     }
 
     if (result.state === 'paused') {
       this.setData({ playingMaterialId: '', pausedMaterialId: materialId });
-      this.appendDebug(`play.paused src=${result.src}`);
     }
   },
 
   restartMaterial(event) {
     const materialId = event.currentTarget.dataset.id;
     const material = this.data.materials.find((item) => item.id === materialId);
-    this.appendDebug(`restart.request materialId=${materialId}`);
 
     if (!material?.audio) {
-      this.appendDebug('restart.skip reason=audio_not_found');
       wx.showToast({ title: '当前材料没有音频，可查看原文', icon: 'none' });
       return;
     }
 
-    const result = restartListeningAudio(material.audio, this.buildAudioHooks(materialId));
+    restartListeningAudio(material.audio, this.buildAudioHooks(materialId));
     this.setData({ playingMaterialId: materialId, pausedMaterialId: '' });
-    this.appendDebug(`restart.started src=${result.src}`);
   },
 
-  appendDebug(message) {
-    const time = new Date().toLocaleTimeString();
+  onProgressChanging(event) {
+    const percent = Math.max(0, Math.min(100, event.detail.value));
+    const duration = this.data.duration;
+    const currentTime = duration > 0 ? (duration * percent) / 100 : 0;
     this.setData({
-      debugLines: [`${time} ${message}`, ...this.data.debugLines].slice(0, 8)
+      isSeeking: true,
+      progressMaterialId: event.currentTarget.dataset.id,
+      progressPercent: percent,
+      currentTime,
+      currentTimeText: this.formatTime(currentTime)
     });
+  },
+
+  onProgressChanged(event) {
+    const materialId = event.currentTarget.dataset.id;
+    const material = this.data.materials.find((item) => item.id === materialId);
+    if (!material?.audio) {
+      this.setData({ isSeeking: false });
+      return;
+    }
+
+    const percent = Math.max(0, Math.min(100, event.detail.value));
+    const duration = this.data.duration;
+    const targetSeconds = duration > 0 ? (duration * percent) / 100 : 0;
+    seekListeningAudio(material.audio, targetSeconds, this.buildAudioHooks(materialId));
+    this.setData({
+      isSeeking: false,
+      playingMaterialId: materialId,
+      pausedMaterialId: '',
+      progressMaterialId: materialId
+    });
+  },
+
+  updateProgress(materialId, state) {
+    if (this.data.isSeeking) {
+      return;
+    }
+
+    this.setData({
+      progressMaterialId: materialId,
+      currentTime: state.currentTime,
+      duration: state.duration,
+      progressPercent: state.progressPercent,
+      currentTimeText: this.formatTime(state.currentTime),
+      durationText: this.formatTime(state.duration)
+    });
+  },
+
+  resetProgress() {
+    this.setData({
+      playingMaterialId: '',
+      pausedMaterialId: '',
+      progressMaterialId: '',
+      currentTime: 0,
+      duration: 0,
+      progressPercent: 0,
+      currentTimeText: '00:00',
+      durationText: '00:00',
+      isSeeking: false
+    });
+  },
+
+  formatTime(seconds) {
+    return formatPlaybackTime(seconds);
   },
 
   buildAudioHooks(materialId) {
     return {
-      onDebug: (message: string) => this.appendDebug(message),
       onError: (message: string) => wx.showToast({ title: message, icon: 'none' }),
       onEnded: () => {
-        this.setData({ playingMaterialId: '', pausedMaterialId: '' });
+        this.resetProgress();
         wx.showToast({ title: '播放结束', icon: 'none' });
       },
       onPlay: () => this.setData({ playingMaterialId: materialId, pausedMaterialId: '' }),
-      onPause: () => this.setData({ playingMaterialId: '', pausedMaterialId: materialId })
+      onPause: () => this.setData({ playingMaterialId: '', pausedMaterialId: materialId }),
+      onTimeUpdate: (state: AudioProgressState) => this.updateProgress(materialId, state)
     };
   },
 
   async moveMaterial(event) {
     const materialId = event.currentTarget.dataset.id;
-    const targetLibraries = this.data.libraries.filter((library) => library.id !== this.data.libraryId);
+    const material = this.data.materials.find((item) => item.id === materialId);
+    if (material?.isPublicMaterial) {
+      wx.showToast({ title: '公共资源无法移动', icon: 'none' });
+      return;
+    }
+
+    const targetLibraries = this.data.libraries.filter((library) => library.id !== material?.libraryId);
     if (targetLibraries.length === 0) {
       wx.showToast({ title: '没有其他分类', icon: 'none' });
       return;
@@ -222,7 +331,7 @@ Page<MaterialListData, {
   },
 
   onDragStart(event) {
-    if (!this.data.isManaging || this.data.isWritingOrder) {
+    if (!this.data.isManaging || this.data.isWritingOrder || this.data.isPublicLibrary || this.data.isAllResources) {
       return;
     }
 
@@ -252,9 +361,13 @@ Page<MaterialListData, {
     }
 
     const currentY = event.touches?.[0]?.pageY ?? event.changedTouches?.[0]?.pageY ?? this.data.dragStartY;
-    const offset = currentY - this.data.dragStartY;
-    const movedSlots = Math.round(offset / this.data.dragItemHeight);
-    const targetIndex = Math.max(0, Math.min(this.data.materials.length - 1, this.data.dragSourceIndex + movedSlots));
+    const targetIndex = getDragTargetIndex({
+      startY: this.data.dragStartY,
+      currentY,
+      itemHeight: this.data.dragItemHeight,
+      sourceIndex: this.data.dragSourceIndex,
+      itemCount: this.data.materials.length
+    });
 
     if (targetIndex !== this.data.dragTargetIndex) {
       this.previewMaterialOrder(targetIndex);
@@ -303,9 +416,7 @@ Page<MaterialListData, {
       return;
     }
 
-    const materials = [...this.data.materials];
-    const [dragging] = materials.splice(draggingIndex, 1);
-    materials.splice(targetIndex, 0, dragging);
+    const materials = moveItemPreview(this.data.materials, draggingIndex, targetIndex);
     this.setData({
       dragTargetIndex: targetIndex,
       materials: materials.map((material) => ({
@@ -316,7 +427,7 @@ Page<MaterialListData, {
   },
 
   async persistDraggedOrder(materialId, sourceIndex, targetIndex) {
-    const direction = targetIndex < sourceIndex ? 'up' : 'down';
+    const direction = getReorderDirection(sourceIndex, targetIndex);
     const steps = Math.abs(targetIndex - sourceIndex);
 
     for (let index = 0; index < steps; index += 1) {
@@ -326,6 +437,12 @@ Page<MaterialListData, {
 
   async deleteMaterial(event) {
     const materialId = event.currentTarget.dataset.id;
+    const material = this.data.materials.find((item) => item.id === materialId);
+    if (material?.isPublicMaterial) {
+      wx.showToast({ title: '公共资源无法删除', icon: 'none' });
+      return;
+    }
+
     const confirmed = await wx.showModal({
       title: '删除材料',
       content: '删除后会同时移除本材料的音频记录。',

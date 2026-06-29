@@ -1,4 +1,7 @@
 export interface CloudDatabase {
+  command: {
+    in(values: unknown[]): unknown;
+  };
   collection<T = Record<string, unknown>>(name: string): CloudCollection<T>;
 }
 

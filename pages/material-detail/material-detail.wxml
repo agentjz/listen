@@ -1,15 +1,19 @@
 <view class="page">
   <view class="section">
-    <view class="title">{{titleInput || '未命名材料'}}</view>
+    <view class="title">{{material.title || '未命名材料'}}</view>
     <view class="subtitle">{{audios.length > 0 ? '已有音频' : '阅读材料'}}</view>
   </view>
 
-  <view class="section panel stack">
+  <view wx:if="{{!isEditing}}" class="section panel">
+    <view class="content-text">{{material.content}}</view>
+  </view>
+
+  <view wx:if="{{isEditing}}" class="section panel stack">
     <input
       class="text-input"
       value="{{titleInput}}"
       bindinput="onTitleInput"
-      placeholder="不填则自动命名"
+      placeholder="材料标题"
       placeholder-class="input-placeholder"
     />
     <textarea
@@ -19,18 +23,19 @@
       placeholder="英文内容"
       placeholder-class="input-placeholder"
       auto-height="{{false}}"
+      maxlength="-1"
     />
   </view>
 
-  <view class="section panel audio-status">
+  <view wx:if="{{isEditing}}" class="section panel audio-status">
     <view>
       <view class="audio-title">音频</view>
-      <view class="audio-meta">{{audios.length > 0 ? '当前材料已绑定音频' : '当前材料未绑定音频'}}</view>
+      <view class="audio-meta">{{audios.length > 0 ? '当前材料已绑定音频' : '从微信会话文件选择 mp3、m4a、wav'}}</view>
     </view>
-    <van-button plain color="#38bdf8" custom-class="narrow-action" loading="{{isUploading}}" bindtap="uploadAudio">替换音频</van-button>
+    <van-button plain color="#38bdf8" custom-class="narrow-action" loading="{{isUploading}}" bindtap="uploadAudio">{{audios.length > 0 ? '替换音频' : '选择音频'}}</van-button>
   </view>
 
-  <view class="section audio-actions">
+  <view wx:if="{{isEditing}}" class="section audio-actions">
     <van-button color="#38bdf8" custom-class="audio-action" loading="{{isSaving}}" bindtap="saveMaterial">保存修改</van-button>
     <van-button wx:if="{{mode === 'cloud'}}" plain color="#38bdf8" custom-class="audio-action" loading="{{isGenerating}}" bindtap="generateAudio">生成音频</van-button>
   </view>

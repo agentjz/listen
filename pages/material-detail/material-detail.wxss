@@ -1,3 +1,11 @@
+.content-text {
+  color: #172033;
+  font-size: 30rpx;
+  line-height: 50rpx;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
 .text-input {
   width: 100%;
   min-height: 96rpx;

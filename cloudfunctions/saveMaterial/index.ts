@@ -4,11 +4,12 @@ import { COLLECTIONS } from '../_shared/collections';
 import { getDatabase, getOpenid } from '../_shared/db';
 import { createId } from '../_shared/id';
 import { fail, ok, toApiError } from '../_shared/response';
+import { UNFILED_LIBRARY_ID } from '../_shared/libraries';
 
 export async function main(event: SaveMaterialRequest): Promise<ReturnType<typeof ok<SaveMaterialResponse>> | ReturnType<typeof fail>> {
   try {
-    if (!event.libraryId || !event.content?.trim()) {
-      return fail('INVALID_REQUEST', '资料库和英文内容不能为空');
+    if (!event.content?.trim()) {
+      return fail('INVALID_REQUEST', '英文内容不能为空');
     }
 
     const db = getDatabase();
@@ -18,17 +19,12 @@ export async function main(event: SaveMaterialRequest): Promise<ReturnType<typeo
 
     const material: Material = {
       id: materialId,
-      libraryId: event.libraryId,
+      libraryId: UNFILED_LIBRARY_ID,
       ownerOpenid: openid,
       title: event.title?.trim() || `Imported ${new Date(now).toISOString().slice(0, 10)}`,
       content: event.content.trim(),
       status: 'ready',
       audioCount: 0,
-      images: (event.imageFileIds ?? []).map((cloudFileId, index) => ({
-        id: createId(`image_${index}`, now),
-        cloudFileId,
-        createdAt: now
-      })),
       sortOrder: now,
       createdAt: now,
       updatedAt: now

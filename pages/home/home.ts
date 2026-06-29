@@ -13,8 +13,8 @@ Page<HomeData, {
   load: () => Promise<void>;
   goLocalResources: () => void;
   goCloudResources: () => void;
-  goLocalImport: () => void;
-  goCloudImport: () => void;
+  goLocalCreate: () => void;
+  goCloudCreate: () => void;
 }>({
   data: {
     isLoading: true,
@@ -58,11 +58,11 @@ Page<HomeData, {
     wx.navigateTo({ url: '/pages/resources/resources?mode=cloud' });
   },
 
-  goLocalImport() {
+  goLocalCreate() {
     wx.navigateTo({ url: '/pages/import/import?mode=local' });
   },
 
-  goCloudImport() {
+  goCloudCreate() {
     wx.navigateTo({ url: '/pages/import/import?mode=cloud' });
   }
 });

@@ -8,11 +8,13 @@ import {
   loadLocalSnapshot,
   moveLocalMaterial,
   replaceLocalMaterialAudio,
+  renameLocalLibrary,
   reorderLocalMaterial,
   saveLocalMaterial,
   updateLocalMaterial
 } from '../miniprogram/services/localRepository';
 import { LOCAL_ASSET_MATERIALS } from '../miniprogram/generated/localAssets';
+import { PUBLIC_LIBRARY_ID, PUBLIC_LIBRARY_NAME, UNFILED_LIBRARY_ID, UNFILED_LIBRARY_NAME } from '../miniprogram/lib/libraries';
 
 const storage = new Map<string, unknown>();
 
@@ -30,17 +32,23 @@ Object.assign(globalThis, {
   } as typeof wx
 });
 
-test('local repository provides a default local library', () => {
+test('local repository provides public resources and unfiled materials', () => {
   clearLocalRepository();
 
   const snapshot = loadLocalSnapshot();
 
-  assert.equal(snapshot.libraries.length, 1);
-  assert.equal(snapshot.libraries[0]?.name, '本地材料');
+  assert.equal(snapshot.libraries.length, 2);
+  assert.equal(snapshot.libraries[0]?.id, PUBLIC_LIBRARY_ID);
+  assert.equal(snapshot.libraries[0]?.name, PUBLIC_LIBRARY_NAME);
+  assert.equal(snapshot.libraries[0]?.kind, 'general');
+  assert.equal(snapshot.libraries[1]?.id, UNFILED_LIBRARY_ID);
+  assert.equal(snapshot.libraries[1]?.name, UNFILED_LIBRARY_NAME);
   const firstAsset = LOCAL_ASSET_MATERIALS[0];
   assert.ok(firstAsset);
   assert.equal(snapshot.materials.length, LOCAL_ASSET_MATERIALS.length);
+  assert.equal(snapshot.materials[0]?.libraryId, PUBLIC_LIBRARY_ID);
   assert.equal(snapshot.materials[0]?.title, firstAsset.title);
+  assert.equal(snapshot.materials[0]?.content.endsWith('Since then, we have been friends with dogs.'), true);
   assert.equal(snapshot.materials[0]?.audioCount, firstAsset.audio ? 1 : 0);
   assert.equal(snapshot.listeningAudios.length, LOCAL_ASSET_MATERIALS.filter((asset) => asset.audio).length);
   assert.equal(snapshot.listeningAudios[0]?.cloudFileId, firstAsset.audio?.cloudFileId);
@@ -57,6 +65,7 @@ test('local repository saves imported material without cloud', () => {
   const snapshot = loadLocalSnapshot();
 
   assert.equal(saved.material.title, 'Local test');
+  assert.equal(saved.material.libraryId, UNFILED_LIBRARY_ID);
   assert.equal(snapshot.materials.length, 2);
 });
 
@@ -67,14 +76,30 @@ test('local repository creates custom libraries', () => {
   const snapshot = loadLocalSnapshot();
 
   assert.equal(result.library.name, 'Intensive Listening');
-  assert.equal(snapshot.libraries.length, 2);
+  assert.equal(snapshot.libraries.length, 3);
 });
 
-test('local repository refuses deleting the default library', () => {
+test('local repository renames custom libraries', () => {
   clearLocalRepository();
+  const library = createLocalLibrary('Before', Date.UTC(2026, 5, 29)).library;
+
+  const result = renameLocalLibrary(library.id, 'After', Date.UTC(2026, 5, 30));
   const snapshot = loadLocalSnapshot();
 
-  assert.throws(() => deleteLocalLibrary(snapshot.libraries[0]?.id ?? ''), /默认本地分类不能删除/);
+  assert.equal(result.library.name, 'After');
+  assert.equal(snapshot.libraries.find((item) => item.id === library.id)?.name, 'After');
+});
+
+test('local repository refuses deleting unfiled materials', () => {
+  clearLocalRepository();
+
+  assert.throws(() => deleteLocalLibrary(UNFILED_LIBRARY_ID), /未归类材料不能删除/);
+});
+
+test('local repository refuses renaming unfiled materials', () => {
+  clearLocalRepository();
+
+  assert.throws(() => renameLocalLibrary(UNFILED_LIBRARY_ID, 'Archive'), /未归类材料不能重命名/);
 });
 
 test('local repository deletes empty custom libraries', () => {
@@ -88,17 +113,33 @@ test('local repository deletes empty custom libraries', () => {
   assert.equal(snapshot.libraries.some((item) => item.id === library.id), false);
 });
 
-test('local repository refuses deleting non-empty custom libraries', () => {
+test('local repository moves materials to unfiled materials when deleting custom libraries', () => {
   clearLocalRepository();
   const library = createLocalLibrary('Not empty', Date.UTC(2026, 5, 29)).library;
-  saveLocalMaterial({
+  const saved = saveLocalMaterial({
     libraryId: library.id,
     content: 'Keep this material.',
     title: 'Protected',
     now: Date.UTC(2026, 5, 30)
   });
 
-  assert.throws(() => deleteLocalLibrary(library.id), /分类内还有材料/);
+  const result = deleteLocalLibrary(library.id);
+  const snapshot = loadLocalSnapshot();
+
+  assert.equal(result.movedMaterialCount, 1);
+  assert.equal(snapshot.libraries.some((item) => item.id === library.id), false);
+  assert.equal(snapshot.materials.find((material) => material.id === saved.material.id)?.libraryId, UNFILED_LIBRARY_ID);
+});
+
+test('local repository refuses writing public resources', () => {
+  clearLocalRepository();
+  const publicMaterial = loadLocalSnapshot().materials.find((material) => material.libraryId === PUBLIC_LIBRARY_ID);
+  assert.ok(publicMaterial);
+
+  assert.throws(() => updateLocalMaterial(publicMaterial.id, { title: 'No', content: 'No.' }), /公共资源不能编辑/);
+  assert.throws(() => replaceLocalMaterialAudio(publicMaterial.id, { cloudFileId: 'wxfile://no.mp3', format: 'mp3' }), /公共资源不能替换音频/);
+  assert.throws(() => reorderLocalMaterial(publicMaterial.id, 'down'), /公共资源不能排序/);
+  assert.throws(() => deleteLocalMaterial(publicMaterial.id), /公共资源不能删除/);
 });
 
 test('local repository moves material to another library', () => {

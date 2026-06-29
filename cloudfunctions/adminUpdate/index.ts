@@ -37,7 +37,6 @@ export async function main(event: AdminUpdateRequest): Promise<ReturnType<typeof
         content: event.material.content,
         status: event.material.status ?? 'ready',
         audioCount: event.material.audioCount ?? 0,
-        images: event.material.images ?? [],
         sortOrder: event.material.sortOrder ?? now,
         createdAt: event.material.createdAt ?? now,
         updatedAt: now

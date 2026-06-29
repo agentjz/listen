@@ -5,8 +5,8 @@ const root = process.cwd();
 const assetsRoot = path.join(root, 'local-assets');
 const folderPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const audioNames = new Set(['audio.mp3', 'audio.m4a', 'audio.wav']);
-const imageNames = new Set(['image.svg', 'image.png', 'image.jpg', 'image.jpeg']);
-const allowedNames = new Set(['README.md', 'text.txt', ...audioNames, ...imageNames]);
+const allowedNames = new Set(['README.md', 'metadata.json', 'text.txt', ...audioNames]);
+const libraryKinds = new Set(['system', 'general', 'user']);
 const failures = [];
 
 if (!fs.existsSync(assetsRoot)) {
@@ -44,7 +44,7 @@ for (const entry of entries) {
     }
 
     if (!allowedNames.has(child.name)) {
-      failures.push(`local-assets/${folderId}/${child.name}: 文件名必须使用 text.txt、audio.* 或 image.*`);
+      failures.push(`local-assets/${folderId}/${child.name}: 文件名必须使用 text.txt 或 audio.*`);
     }
   }
 
@@ -56,14 +56,26 @@ for (const entry of entries) {
     failures.push(`local-assets/${folderId}: 缺少 text.txt`);
   }
 
+  if (fileNames.includes('metadata.json')) {
+    try {
+      const metadata = JSON.parse(fs.readFileSync(path.join(materialDir, 'metadata.json'), 'utf8'));
+      if (!metadata.libraryId || !folderPattern.test(metadata.libraryId)) {
+        failures.push(`local-assets/${folderId}/metadata.json: libraryId 必须使用小写字母、数字和连字符`);
+      }
+      if (!metadata.libraryName || typeof metadata.libraryName !== 'string') {
+        failures.push(`local-assets/${folderId}/metadata.json: libraryName 不能为空`);
+      }
+      if (!libraryKinds.has(metadata.libraryKind)) {
+        failures.push(`local-assets/${folderId}/metadata.json: libraryKind 必须是 system、general 或 user`);
+      }
+    } catch (error) {
+      failures.push(`local-assets/${folderId}/metadata.json: JSON 无法解析`);
+    }
+  }
+
   const audioCount = fileNames.filter((name) => audioNames.has(name)).length;
   if (audioCount > 1) {
     failures.push(`local-assets/${folderId}: 只能保留一个 audio.mp3、audio.m4a 或 audio.wav`);
-  }
-
-  const imageCount = fileNames.filter((name) => imageNames.has(name)).length;
-  if (imageCount > 1) {
-    failures.push(`local-assets/${folderId}: 只能保留一个 image.svg、image.png、image.jpg 或 image.jpeg`);
   }
 }
 

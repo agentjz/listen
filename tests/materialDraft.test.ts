@@ -13,8 +13,7 @@ test('buildSaveMaterialRequest trims content and uses title', () => {
   assert.deepEqual(request, {
     libraryId: 'library',
     title: 'My Material',
-    content: 'Hello.',
-    imageFileIds: []
+    content: 'Hello.'
   });
 });
 

@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = process.cwd();
-const ignoredDirs = new Set(['.git', 'node_modules', 'miniprogram_npm', 'ref']);
+const ignoredDirs = new Set(['.git', '.kitty', 'node_modules', 'miniprogram_npm', 'ref']);
 const textExtensions = new Set([
   '.ts',
   '.js',

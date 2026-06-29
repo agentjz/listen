@@ -1,9 +1,10 @@
 import { UpdateMaterialRequest, UpdateMaterialResponse } from '../../miniprogram/types/api';
-import { Material } from '../../miniprogram/types/domain';
+import { Material, SourceLibrary } from '../../miniprogram/types/domain';
 import { buildDefaultMaterialTitle } from '../../miniprogram/lib/materialTitle';
 import { COLLECTIONS } from '../_shared/collections';
-import { getDatabase } from '../_shared/db';
+import { getDatabase, getOpenid } from '../_shared/db';
 import { fail, ok, toApiError } from '../_shared/response';
+import { isPublicLibraryKind } from '../_shared/libraries';
 
 export async function main(event: UpdateMaterialRequest): Promise<ReturnType<typeof ok<UpdateMaterialResponse>> | ReturnType<typeof fail>> {
   try {
@@ -13,9 +14,15 @@ export async function main(event: UpdateMaterialRequest): Promise<ReturnType<typ
     }
 
     const db = getDatabase();
-    const existing = (await db.collection<Material>(COLLECTIONS.materials).where({ id: event.materialId }).get()).data[0];
+    const openid = getOpenid();
+    const existing = (await db.collection<Material>(COLLECTIONS.materials).where({ id: event.materialId, ownerOpenid: openid, status: 'ready' }).get()).data[0];
     if (!existing) {
       return fail('NOT_FOUND', '材料不存在');
+    }
+
+    const library = (await db.collection<SourceLibrary>(COLLECTIONS.sourceLibraries).where({ id: existing.libraryId }).get()).data[0];
+    if (isPublicLibraryKind(library?.kind ?? 'general')) {
+      return fail('FORBIDDEN', '公共资源不能编辑');
     }
 
     const now = Date.now();
@@ -26,7 +33,7 @@ export async function main(event: UpdateMaterialRequest): Promise<ReturnType<typ
       updatedAt: now
     };
 
-    await db.collection<Material>(COLLECTIONS.materials).where({ id: event.materialId }).update({
+    await db.collection<Material>(COLLECTIONS.materials).where({ id: event.materialId, ownerOpenid: openid }).update({
       data: {
         title: material.title,
         content: material.content,

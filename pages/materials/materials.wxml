@@ -1,19 +1,14 @@
 <view class="page materials-page">
   <view class="section page-head">
     <view class="head-copy">
-      <view class="title">材料</view>
-      <view class="subtitle">点标题看原文，有音频就直接播放。</view>
+      <view class="title">{{libraryName}}</view>
+      <view class="subtitle">{{isPublicLibrary ? '公共资源只读，只能查看和播放。' : '点标题看原文，有音频就直接播放。'}}</view>
     </view>
     <view class="manage-toggle" bindtap="toggleManage">{{isManaging ? '完成' : '管理'}}</view>
   </view>
 
-  <view wx:if="{{isManaging}}" class="section manage-panel">
-    <view class="import-action" bindtap="goImport">导入材料</view>
-  </view>
-
-  <view wx:if="{{debugLines.length}}" class="section debug-panel">
-    <view class="debug-title">播放调试</view>
-    <view wx:for="{{debugLines}}" wx:key="*this" class="debug-line">{{item}}</view>
+  <view wx:if="{{isManaging && !isPublicLibrary && !isAllResources}}" class="section manage-panel">
+    <view class="import-action" bindtap="goPrimaryManageAction">{{primaryManageActionText}}</view>
   </view>
 
   <view class="material-list">
@@ -21,7 +16,7 @@
       wx:for="{{materials}}"
       wx:for-index="index"
       wx:key="id"
-      class="{{item.isDragging ? 'material-card dragging' : 'material-card'}}"
+      class="{{item.isHighlighted ? 'material-card highlighted' : (item.isDragging ? 'material-card dragging' : 'material-card')}}"
       data-id="{{item.id}}"
       data-index="{{index}}"
       bindlongpress="onDragStart"
@@ -31,7 +26,7 @@
     >
       <view class="material-body" data-id="{{item.id}}" bindtap="openDetail">
         <view class="material-title">{{item.title}}</view>
-        <view class="material-desc">{{item.audioCount > 0 ? item.audioCount + ' 段音频' : '阅读材料'}}</view>
+        <view class="material-desc">{{isAllResources ? item.libraryName + ' · ' : ''}}{{item.audioCount > 0 ? item.audioCount + ' 段音频' : '阅读材料'}}</view>
       </view>
       <view class="material-footer">
         <view class="footer-action play" data-id="{{item.id}}" bindtap="playMaterial">
@@ -43,7 +38,25 @@
           <text>从头</text>
         </view>
       </view>
-      <view wx:if="{{isManaging}}" class="manage-actions">
+      <view wx:if="{{item.audio && progressMaterialId === item.id}}" class="progress-row">
+        <text class="time-text">{{currentTimeText}}</text>
+        <slider
+          class="progress-slider"
+          value="{{progressPercent}}"
+          min="0"
+          max="100"
+          step="1"
+          block-size="16"
+          activeColor="#38bdf8"
+          backgroundColor="#d9e4ef"
+          data-id="{{item.id}}"
+          bindchanging="onProgressChanging"
+          bindchange="onProgressChanged"
+        />
+        <text class="time-text">{{durationText}}</text>
+      </view>
+      <view wx:if="{{isManaging && !item.isPublicMaterial}}" class="manage-actions">
+        <view class="manage-action" data-id="{{item.id}}" bindtap="editMaterial">编辑</view>
         <view class="manage-action" data-id="{{item.id}}" bindtap="moveMaterial">移动</view>
         <view class="manage-action danger" data-id="{{item.id}}" bindtap="deleteMaterial">删除</view>
       </view>

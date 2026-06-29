@@ -17,14 +17,6 @@ export interface SourceLibrary {
   updatedAt: number;
 }
 
-export interface MaterialImage {
-  id: string;
-  cloudFileId: string;
-  width?: number;
-  height?: number;
-  createdAt: number;
-}
-
 export interface Material {
   id: string;
   libraryId: string;
@@ -33,7 +25,6 @@ export interface Material {
   content: string;
   status: MaterialStatus;
   audioCount: number;
-  images: MaterialImage[];
   sortOrder: number;
   createdAt: number;
   updatedAt: number;
