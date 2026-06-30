@@ -1,32 +1,44 @@
-Page<{}, {
-  startAllLocal: () => void;
-  startAllCloud: () => void;
-  openLocalCategories: () => void;
-  openCloudCategories: () => void;
-  openLocalGroups: () => void;
-  openCloudGroups: () => void;
+import { DataMode, parseDataMode } from '../../miniprogram/types/runtime';
+
+interface PracticeIndexData {
+  mode: DataMode;
+  modeLabel: string;
+  allDescription: string;
+  groupDescription: string;
+}
+
+Page<PracticeIndexData, {
+  startAll: () => void;
+  openCategories: () => void;
+  openGroups: () => void;
 }>({
-  startAllLocal() {
-    wx.navigateTo({ url: '/pages/practice/player?mode=local&sourceType=all' });
+  data: {
+    mode: 'local',
+    modeLabel: '本地',
+    allDescription: '本地所有有音频材料',
+    groupDescription: '使用保存的本地练习组'
   },
 
-  startAllCloud() {
-    wx.navigateTo({ url: '/pages/practice/player?mode=cloud&sourceType=all' });
+  onLoad(query) {
+    const mode = parseDataMode(query?.mode);
+    const modeLabel = mode === 'local' ? '本地' : '云端';
+    this.setData({
+      mode,
+      modeLabel,
+      allDescription: `${modeLabel}所有有音频材料`,
+      groupDescription: mode === 'local' ? '使用保存的本地练习组' : '当前设备保存的云端练习组'
+    });
   },
 
-  openLocalCategories() {
-    wx.navigateTo({ url: '/pages/practice/categories?mode=local' });
+  startAll() {
+    wx.navigateTo({ url: `/pages/practice/player?mode=${this.data.mode}&sourceType=all` });
   },
 
-  openCloudCategories() {
-    wx.navigateTo({ url: '/pages/practice/categories?mode=cloud' });
+  openCategories() {
+    wx.navigateTo({ url: `/pages/practice/categories?mode=${this.data.mode}` });
   },
 
-  openLocalGroups() {
-    wx.navigateTo({ url: '/pages/practice/groups?mode=local' });
-  },
-
-  openCloudGroups() {
-    wx.navigateTo({ url: '/pages/practice/groups?mode=cloud' });
+  openGroups() {
+    wx.navigateTo({ url: `/pages/practice/groups?mode=${this.data.mode}` });
   }
 });

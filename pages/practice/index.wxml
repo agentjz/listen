@@ -1,47 +1,29 @@
 <view class="page practice-index-page">
   <view class="section hero">
-    <view class="title">听写练习</view>
+    <view class="title">{{modeLabel}}练习</view>
     <view class="subtitle">从已有音频材料中随机播放，默认盲听，按需查看原文。</view>
   </view>
 
-  <view class="section mode-panel">
-    <view class="mode-title">本地练习</view>
-    <view class="practice-grid">
-      <view class="practice-entry" bindtap="startAllLocal">
-        <van-icon name="exchange" />
+  <view class="section practice-grid">
+    <view class="practice-entry" bindtap="startAll">
+      <van-icon name="exchange" />
+      <view class="entry-body">
         <text class="entry-title">全部随机</text>
-        <text class="entry-meta">本地所有有音频材料</text>
-      </view>
-      <view class="practice-entry" bindtap="openLocalCategories">
-        <van-icon name="cluster-o" />
-        <text class="entry-title">分类随机</text>
-        <text class="entry-meta">选择一个分类练习</text>
-      </view>
-      <view class="practice-entry" bindtap="openLocalGroups">
-        <van-icon name="bookmark-o" />
-        <text class="entry-title">练习组</text>
-        <text class="entry-meta">使用保存的材料组</text>
+        <text class="entry-meta">{{allDescription}}</text>
       </view>
     </view>
-  </view>
-
-  <view class="section mode-panel">
-    <view class="mode-title">云端练习</view>
-    <view class="practice-grid">
-      <view class="practice-entry" bindtap="startAllCloud">
-        <van-icon name="exchange" />
-        <text class="entry-title">全部随机</text>
-        <text class="entry-meta">云端所有有音频材料</text>
-      </view>
-      <view class="practice-entry" bindtap="openCloudCategories">
-        <van-icon name="cluster-o" />
+    <view class="practice-entry" bindtap="openCategories">
+      <van-icon name="cluster-o" />
+      <view class="entry-body">
         <text class="entry-title">分类随机</text>
         <text class="entry-meta">选择一个分类练习</text>
       </view>
-      <view class="practice-entry" bindtap="openCloudGroups">
-        <van-icon name="bookmark-o" />
+    </view>
+    <view class="practice-entry" bindtap="openGroups">
+      <van-icon name="bookmark-o" />
+      <view class="entry-body">
         <text class="entry-title">练习组</text>
-        <text class="entry-meta">当前设备保存的云端练习组</text>
+        <text class="entry-meta">{{groupDescription}}</text>
       </view>
     </view>
   </view>

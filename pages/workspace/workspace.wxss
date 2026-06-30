@@ -1,4 +1,4 @@
-.home-page {
+.workspace-page {
   padding-top: 44rpx;
 }
 
@@ -6,26 +6,26 @@
   padding: 36rpx 0 28rpx;
 }
 
-.workspace-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+.action-list {
+  display: flex;
+  flex-direction: column;
   gap: 18rpx;
 }
 
-.workspace-card {
+.action-card {
   display: flex;
   min-width: 0;
-  min-height: 152rpx;
+  min-height: 136rpx;
   align-items: center;
   gap: 22rpx;
-  padding: 28rpx;
+  padding: 26rpx;
   border: 1rpx solid #bae6fd;
   border-radius: 8rpx;
   color: #0284c7;
   background: #ffffff;
 }
 
-.workspace-body {
+.action-body {
   display: flex;
   min-width: 0;
   flex: 1;
@@ -33,14 +33,14 @@
   gap: 8rpx;
 }
 
-.workspace-title {
+.action-title {
   color: #0284c7;
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 700;
-  line-height: 44rpx;
+  line-height: 42rpx;
 }
 
-.workspace-description {
+.action-description {
   color: #667085;
   font-size: 24rpx;
   line-height: 34rpx;

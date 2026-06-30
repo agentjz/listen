@@ -1,0 +1,22 @@
+<view class="page workspace-page">
+  <view class="section hero">
+    <view class="title">{{workspace.name}}</view>
+    <view class="subtitle">{{workspace.description}}</view>
+  </view>
+
+  <view class="section action-list">
+    <view
+      wx:for="{{actions}}"
+      wx:key="kind"
+      class="action-card"
+      data-url="{{item.url}}"
+      bindtap="openAction"
+    >
+      <van-icon name="{{item.icon}}" />
+      <view class="action-body">
+        <text class="action-title">{{item.title}}</text>
+        <text class="action-description">{{item.description}}</text>
+      </view>
+    </view>
+  </view>
+</view>

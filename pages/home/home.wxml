@@ -1,36 +1,22 @@
 <view class="page home-page">
   <view class="section hero">
-    <view>
-      <view class="title">每日英语听写</view>
-      <view class="subtitle">选择材料开始听，或者新建英文材料。</view>
-    </view>
+    <view class="title">每日英语听写</view>
+    <view class="subtitle">选择测试通道或云端通道，进入资源、新建和听写练习。</view>
   </view>
 
-  <view class="section action-grid">
-    <view class="entry-card" bindtap="goLocalResources">
-      <van-icon name="cluster-o" />
-      <text class="entry-title">本地资源</text>
-      <text class="entry-meta">{{localLibraryCount}} 个资料库</text>
-    </view>
-    <view class="entry-card" bindtap="goLocalCreate">
-      <van-icon name="records-o" />
-      <text class="entry-title">本地新建</text>
-      <text class="entry-meta">{{localMaterialCount}} 个材料</text>
-    </view>
-    <view class="entry-card" bindtap="goCloudResources">
-      <text class="cloud-symbol">☁</text>
-      <text class="entry-title">云端资源</text>
-      <text class="entry-meta">{{cloudAvailable ? cloudLibraryCount + ' 个资料库' : '云不可用'}}</text>
-    </view>
-    <view class="entry-card" bindtap="goCloudCreate">
-      <van-icon name="upgrade" />
-      <text class="entry-title">云端新建</text>
-      <text class="entry-meta">{{cloudAvailable ? cloudMaterialCount + ' 个材料' : '云不可用'}}</text>
-    </view>
-    <view class="entry-card wide" bindtap="goPractice">
-      <van-icon name="play-circle-o" />
-      <text class="entry-title">听写练习</text>
-      <text class="entry-meta">随机播放有音频材料</text>
+  <view class="section workspace-grid">
+    <view
+      wx:for="{{workspaces}}"
+      wx:key="kind"
+      class="workspace-card"
+      data-mode="{{item.mode}}"
+      bindtap="openWorkspace"
+    >
+      <van-icon name="{{item.icon}}" />
+      <view class="workspace-body">
+        <text class="workspace-title">{{item.name}}</text>
+        <text class="workspace-description">{{item.description}}</text>
+      </view>
     </view>
   </view>
 </view>

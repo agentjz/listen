@@ -1,116 +1,124 @@
-# 测试分层与构建产物集中 Plan
+# 首页双通道工作区 Plan
 
 ## 1. 需求文档
 
-当前源码目录里同时存在 TypeScript 源码和 TypeScript 编译出来的 JavaScript 文件，导致后续维护时经常需要手动清理，也容易误把构建产物当成源码。`tests/` 目录也把所有测试平铺在根目录，不利于继续扩展。
+当前首页直接摆出本地资源、本地新建、云端资源、云端新建和听写练习。开发阶段需要本地通道稳定测试，因为云端环境当前不可完整验证；未来正式使用时又需要云端通道成为主入口。
 
-本次要把工程整理成更稳定的生产结构：源码树只保存源码和小程序静态文件，编译后的运行目录统一生成到 `dist/miniprogram`；测试按职责进入子目录，测试命令仍能一次跑完整测试集。
+本次要把首页改成两个清晰入口：
 
-业务完成标准：开发时看源码目录是清爽的；运行微信开发者工具时打开构建目录即可；新增测试时能按职责放入明确目录；构建、测试、完整验证都能稳定通过。
+- 测试入口：进入本地资源、本地新建、本地练习。
+- 云端入口：进入云端资源、云端新建、云端练习。
+
+用户打开首页时先选择工作区，再在工作区里选择资源、新建或练习。两个工作区的页面结构保持镜像，数据通道不同。本地通道用于无云环境测试，云端通道用于 CloudBase 接入后的真实数据路径。
+
+业务完成标准：首页只显示“测试入口”和“云端入口”；进入任一入口后，看到同构的三个操作入口；本地路径无需云环境可用，云端路径继续走云端接口且失败时明确提示。
 
 ## 2. 当前事实
 
-- 当前仓库有未提交的功能改动，包括听写练习、播放器生命周期、README、首页入口和相关测试；本任务不能回滚这些改动。
-- `package.json` 当前 `build` 是 `npm.cmd run generate:local-assets && tsc`。
-- `tsconfig.json` 当前没有 `outDir`，因此 `tsc` 会把 `.js` 输出到 `app.ts`、`pages/**/*.ts`、`miniprogram/**/*.ts`、`cloudfunctions/**/*.ts`、`tests/**/*.ts` 旁边。
-- 当前本地已经存在散落构建产物：`app.js`、`pages/**/*.js`、`miniprogram/**/*.js`、`cloudfunctions/**/*.js`、`tests/**/*.js`。
-- `.gitignore` 已经忽略这些散落 `.js` 和 `dist/`，说明它们不是源码。
-- `project.config.json` 当前 `miniprogramRoot` 是 `./`，微信开发者工具打开根目录时会把源码根当作小程序根；清理源码 `.js` 后必须改为指向构建目录。
-- 微信小程序运行目录必须保留页面结构：页面 `.js` 需要和对应 `.wxml`、`.wxss`、`.json` 在同一路径下。
-- 当前 `tests/` 根目录有 11 个 `.test.ts` 文件平铺。
-- 当前 `package.json` 的 `test` 脚本是 `tsx --test tests/*.test.ts`，不能发现子目录测试。
-- `kitty/tests` 使用职责域子目录组织测试。
+- 当前工作区干净，上一轮改动已提交并推送。
+- `pages/home/home.ts` 当前有本地资源、本地新建、云端资源、云端新建和一个不带 mode 的听写练习入口。
+- `pages/resources/resources.ts` 已支持 `mode=local|cloud`。
+- `pages/import/import.ts` 已支持 `mode=local|cloud`。
+- `pages/practice/categories.ts`、`pages/practice/groups.ts`、`pages/practice/player.ts` 已支持 `mode=local|cloud`。
+- `pages/practice/index.ts` 当前同时展示本地练习和云端练习，不是工作区内单通道页面。
+- `miniprogram/types/runtime.ts` 当前只有 `DataMode` 和 `parseDataMode`。
+- `spec.md` 当前验收标准仍写首页能直接进入本地资源、本地新建、云端资源、云端新建，没有记录首页工作区结构。
+- `app.json` 已包含练习相关页面。
+- `npm.cmd run verify` 和 `npm.cmd run build` 是当前完整验证命令。
 
 ## 3. 失败测试
 
 以下任一情况视为失败：
 
-- 源码目录仍生成或保留 `app.js`、`pages/**/*.js`、`miniprogram/**/*.js`、`cloudfunctions/**/*.js`、`tests/**/*.js`。
-- `npm.cmd run build` 没有生成可供微信开发者工具打开的 `dist/miniprogram`。
-- `dist/miniprogram` 缺少 `app.json`、`app.js`、页面静态文件、页面编译产物、`local-assets` 或 Vant Weapp 运行资产。
-- 根目录 `project.config.json` 没有指向 `dist/miniprogram/`。
-- `dist/miniprogram/project.config.json` 不能直接打开构建目录。
-- 测试移动后 `npm.cmd test` 不能递归跑完全部测试。
-- import 路径因移动测试文件而损坏。
+- 首页仍直接显示本地资源、本地新建、云端资源、云端新建这四个一层入口。
+- 首页没有清晰区分测试入口和云端入口。
+- 工作区页没有提供资源、新建、练习三个镜像操作。
+- 本地工作区的练习入口没有携带 `mode=local`。
+- 云端工作区的练习入口没有携带 `mode=cloud`。
+- 为了正式切换入口而保留注释代码、假开关、旧入口别名或兼容转发。
+- 页面结构改变后出现按钮文字溢出、入口卡片挤压、图标缺失或整行用 `button` 当卡片。
+- `spec.md` 与当前首页用户路径不一致。
 - `npm.cmd run verify` 或 `npm.cmd run build` 失败。
 
 ## 4. 目标
 
-- 新增可重复执行的小程序构建脚本，把运行产物集中到 `dist/miniprogram`。
-- 更新根目录微信项目配置，让微信开发者工具打开仓库根目录时使用 `dist/miniprogram`。
-- 新增构建专用 TypeScript 配置，只编译小程序运行代码和云函数代码，不编译测试。
-- 构建脚本负责复制小程序静态文件、`local-assets`、Vant Weapp 运行资产和适配后的微信项目配置。
-- 清理当前已经散落在源码目录的 `.js` 构建产物。
-- 将测试整理为 `tests/domain/`、`tests/services/`、`tests/cloud/`。
-- 更新测试脚本为递归匹配。
-- 保持现有产品功能、页面、云函数和测试语义不变。
+- 首页只呈现两个工作区入口：测试入口、云端入口。
+- 新增或改造工作区选择后的页面，使测试入口显示本地资源、本地新建、本地练习，云端入口显示云端资源、云端新建、云端练习。
+- 练习首页按传入 `mode` 只展示当前工作区的练习入口，不再在同一页混放本地和云端。
+- 新增小程序端工作区配置或纯规则，集中定义工作区名称、模式、图标和入口文案。
+- 补充测试保护工作区配置和练习入口路由规则。
+- 同步 `spec.md` 当前事实和验收标准。
 
 ## 5. 不做范围
 
-- 不改变听写练习、材料管理、播放器、云函数和本地资源的业务行为。
-- 不引入新的打包框架，不把项目迁移到第三方小程序框架。
-- 不把 `dist/` 纳入版本控制。
-- 不提交或推送，除非 owner 明确要求。
-- 不保留任何兼容转发、旧入口别名或历史构建方式。
+- 不实现云端环境部署。
+- 不改变资源、新建、材料、练习播放器的数据读写行为。
+- 不删除本地通道。
+- 不通过注释代码切换正式入口。
+- 不新增复杂权限、登录、环境变量或远程配置开关。
+- 不提交或 push；commit/push 必须另行得到 owner 确认。
 
 ## 6. 设计
 
-构建链路：
+主链路：
 
-1. `npm.cmd run generate:local-assets` 扫描 `local-assets/` 并生成 `miniprogram/generated/localAssets.ts`。
-2. `node scripts/build-miniprogram.js` 删除旧的 `dist/miniprogram`，创建干净输出目录。
-3. 构建脚本复制运行所需静态文件：
-   - 根级小程序文件：`app.json`、`app.wxss`、`sitemap.json`。
-   - 页面静态文件：`pages/**/*.wxml`、`pages/**/*.wxss`、`pages/**/*.json`。
-   - 本地材料文件：`local-assets/**`。
-   - Vant Weapp 运行资产：从 `node_modules/@vant/weapp/dist` 复制到 `miniprogram_npm/@vant/weapp`，如果依赖不存在则明确失败，避免构建出不可运行目录。
-4. 根目录 `project.config.json` 指向 `dist/miniprogram/` 和 `dist/miniprogram/cloudfunctions/`，用于直接打开仓库根目录。
-5. 构建脚本写入 `dist/miniprogram/project.config.json`，其中 `miniprogramRoot` 为 `./`，`cloudfunctionRoot` 为 `cloudfunctions/`，用于必要时直接打开构建目录。
-6. 构建脚本调用 `tsc -p tsconfig.build.json`，把 `app.ts`、`pages/**/*.ts`、`miniprogram/**/*.ts`、`cloudfunctions/**/*.ts` 编译到 `dist/miniprogram` 对应路径。
+1. 首页读取工作区配置，展示两个工作区入口。
+2. 用户点击测试入口，进入工作区页并携带 `mode=local`。
+3. 用户点击云端入口，进入工作区页并携带 `mode=cloud`。
+4. 工作区页根据 `mode` 展示三个操作：资源、新建、练习。
+5. 资源入口跳转 `/pages/resources/resources?mode=<mode>`。
+6. 新建入口跳转 `/pages/import/import?mode=<mode>`。
+7. 练习入口跳转 `/pages/practice/index?mode=<mode>`。
+8. 练习首页根据 `mode` 只展示当前通道的全部随机、分类随机、练习组三个入口。
 
-测试目录边界：
+模块边界：
 
-- `tests/domain/`：纯规则和领域函数测试。
-- `tests/services/`：小程序服务、播放器、仓库、练习组等接线测试。
-- `tests/cloud/`：云函数共享规则和 provider 测试。
+- `miniprogram/lib/workspaces.ts`：纯配置和路由构造规则，只描述当前有效工作区和入口，不保留隐藏旧入口。
+- `pages/home/*`：只展示工作区选择，不直接承载资源、新建、练习入口。
+- `pages/workspace/*`：展示单个工作区下的资源、新建、练习入口。
+- `pages/practice/index.*`：展示单个 mode 的练习入口。
+- `tests/domain/workspaces.test.ts`：验证工作区配置和路由生成。
+- `spec.md`：同步当前产品事实和验收标准。
 
-清理边界：
+错误边界：
 
-- 只删除已忽略的构建产物路径：`app.js`、`pages/**/*.js`、`miniprogram/**/*.js`、`cloudfunctions/**/*.js`、`tests/**/*.js`。
-- 不删除 `scripts/*.js`，因为它们是源码脚本。
+- `mode` 解析继续使用 `parseDataMode`，非法值回到 `local`。
+- 云端不可用时不在首页假装可用；云端资源、新建、练习进入后由现有云端加载逻辑显示失败原因。
+
+UI 边界：
+
+- 入口卡片使用 `view bindtap`，不使用 `button` 当卡片。
+- 两层入口都使用稳定 grid/flex 尺寸，设置 `min-width: 0` 和换行策略。
+- 不加解释型长文案，不加伪统计。
 
 ## 7. 实施任务
 
-- [x] T001 新增构建专用 TypeScript 配置；验收：运行代码能输出到 `dist/miniprogram`，测试不参与构建。
-- [x] T002 新增小程序构建脚本；验收：静态文件、项目配置、`local-assets`、Vant Weapp 运行资产和 TS 产物都进入 `dist/miniprogram`。
-- [x] T003 更新 `package.json` 脚本；验收：`build` 使用集中输出构建，`test` 递归发现测试。
-- [x] T004 整理 `tests/` 目录；验收：根目录不再平铺 `.test.ts`，import 路径正确。
-- [x] T005 清理源码树散落 `.js` 产物；验收：目标源码目录下没有旧构建 `.js`。
-- [x] T006 运行测试、完整验证和构建；验收：`npm.cmd test`、`npm.cmd run verify`、`npm.cmd run build` 通过。
-- [x] T007 收口记录；验收：`plan.md` 写明完成事实、验证结果和剩余风险。
+- [x] T001 新增工作区纯规则模块；验收：能生成首页工作区配置和工作区内三个入口路由。
+- [x] T002 新增工作区规则测试；验收：测试覆盖两个工作区、三类入口和 mode 路由。
+- [x] T003 改造首页；验收：首页只显示测试入口和云端入口。
+- [x] T004 新增工作区页面并注册路由；验收：测试入口和云端入口分别显示资源、新建、练习。
+- [x] T005 改造练习首页为单 mode 页面；验收：`mode=local` 只显示本地练习，`mode=cloud` 只显示云端练习。
+- [x] T006 同步 `spec.md`；验收：产品事实和验收标准描述双通道工作区。
+- [x] T007 运行验证和构建；验收：`npm.cmd run verify`、`npm.cmd run build` 通过。
+- [x] T008 收口记录；验收：`plan.md` 写明完成事实、验证结果和剩余风险。
 
 ## 8. 验证计划
 
 执行：
 
 ```powershell
-npm.cmd test
 npm.cmd run verify
 npm.cmd run build
-Get-ChildItem -Recurse -File -Include *.js app.js,pages,miniprogram,cloudfunctions,tests
-Test-Path dist/miniprogram/app.js
-Test-Path dist/miniprogram/app.json
-Test-Path dist/miniprogram/pages/home/home.js
-Test-Path dist/miniprogram/pages/home/home.wxml
-Test-Path dist/miniprogram/project.config.json
+rg "<button|button\\b|::after|display:\\s*flex|grid-template-columns|width:\\s*100%" pages app.wxss -n
 ```
 
-期望：
+检查：
 
-- 测试、完整验证、构建全部通过。
-- 源码目录指定范围不再有散落 `.js` 构建产物。
-- `dist/miniprogram` 存在完整小程序运行结构。
-- 微信开发者工具应打开 `dist/miniprogram` 目录进行预览。
+- 首页 WXML 中不再出现直接的本地资源、本地新建、云端资源、云端新建入口。
+- 首页 WXML 中存在测试入口和云端入口。
+- 工作区页面存在资源、新建、练习三个入口。
+- 练习首页路由带入 `mode` 并只渲染当前 mode 的入口。
+- 构建产物生成到 `dist/miniprogram`。
 
 ## 9. 收口
 
@@ -118,23 +126,22 @@ Test-Path dist/miniprogram/project.config.json
 
 完成事实：
 
-- 新增 `tsconfig.build.json`，运行时代码编译到 `dist/miniprogram`，测试不参与小程序构建。
-- 新增 `scripts/build-miniprogram.js`，每次构建都会清空并重建 `dist/miniprogram`。
-- `npm.cmd run build` 现在执行本地资源扫描、静态文件复制、Vant Weapp 运行资产复制、微信项目配置写入和 TypeScript 编译。
-- 根目录 `project.config.json` 已指向 `dist/miniprogram/`，微信开发者工具打开仓库根目录时使用构建产物。
-- `dist/miniprogram/project.config.json` 保持 `miniprogramRoot: "./"`，可直接打开构建目录。
-- `tests/` 已分为 `tests/domain/`、`tests/services/`、`tests/cloud/`。
-- `package.json` 的 `test` 脚本已改为递归匹配 `tests/**/*.test.ts`。
-- 已删除源码目录散落的 `app.js`、`pages/**/*.js`、`miniprogram/**/*.js`、`cloudfunctions/**/*.js`、`tests/**/*.js`。
+- 新增 `miniprogram/lib/workspaces.ts`，集中定义测试入口、云端入口和工作区内资源、新建、练习三个路由。
+- 新增 `tests/domain/workspaces.test.ts`，覆盖两个工作区、工作区页路由和本地/云端镜像操作入口。
+- 首页已改为只显示测试入口和云端入口。
+- 新增 `pages/workspace/workspace` 并注册到 `app.json`。
+- 工作区页根据 `mode=local|cloud` 展示资源、新建、练习三个入口。
+- 练习首页已改为单 mode 页面；`mode=local` 展示本地练习，`mode=cloud` 展示云端练习。
+- `spec.md` 已同步双通道工作区当前事实和验收标准。
 
 验证结果：
 
-- `npm.cmd test` 通过，44 个测试全部通过。
-- `npm.cmd run verify` 通过，包含本地资源生成、类型检查、递归测试、边界检查和本地素材检查。
-- `npm.cmd run build` 通过，生成 `dist/miniprogram`。
-- 结构检查通过：源码目标目录没有散落 `.js`；`dist/miniprogram/app.js`、`app.json`、`pages/home/home.js`、`pages/home/home.wxml`、`project.config.json`、Vant icon 组件和本地样例音频都存在。
+- `npm.cmd run verify` 通过，48 个测试全部通过。
+- `npm.cmd run build` 通过，`dist/miniprogram` 已生成工作区页面产物。
+- UI 结构搜索已执行；入口卡片没有使用 `button`，`van-button` 仍只用于保存、新增、上传等真实命令。
+- 旧首页方法名搜索无残留：`goLocalResources`、`goCloudResources`、`goLocalCreate`、`goCloudCreate`、`startAllLocal`、`startAllCloud` 等均未命中。
 
 剩余风险：
 
-- 未在微信开发者工具里做人工预览；下一步应打开仓库根目录，确认开发者工具读取的是 `dist/miniprogram/`。
-- 当前工作区仍包含本次之前的未提交功能改动，本任务没有回滚或重写这些改动。
+- 未在微信开发者工具里人工点击预览；需要打开构建后的项目确认两层入口视觉和跳转手感。
+- 本次没有 commit 或 push；按 `AGENTS.md` 规则，commit/push 前必须由 owner 再次明确确认。
