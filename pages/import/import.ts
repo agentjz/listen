@@ -1,4 +1,9 @@
-import { loadSnapshotByMode, saveDraftMaterialByMode, syncCloudData } from '../../miniprogram/services/runtimeData';
+import {
+  deleteMaterialByMode,
+  loadSnapshotByMode,
+  saveDraftMaterialByMode,
+  syncCloudData
+} from '../../miniprogram/services/runtimeData';
 import { chooseAndReplaceMaterialAudio } from '../../miniprogram/services/upload';
 import { DataMode, parseDataMode } from '../../miniprogram/types/runtime';
 
@@ -83,20 +88,34 @@ Page<ImportData, {
   },
 
   async saveMaterial() {
+    if (this.data.isSaving) {
+      return;
+    }
+
+    let createdMaterialId = '';
     try {
       this.setData?.({ isSaving: true });
       const saved = await saveDraftMaterialByMode(this.data.mode, {
         title: this.data.title,
         content: this.data.content
       });
+      if (!saved.material?.id) {
+        throw new Error('材料保存结果异常');
+      }
+      createdMaterialId = saved.material.id;
       if (this.data.pendingAudioPath) {
-        await chooseAndReplaceMaterialAudio({
-          mode: this.data.mode,
-          openid: this.data.openid,
-          materialId: saved.material.id,
-          filePath: this.data.pendingAudioPath,
-          fileName: this.data.audioFileName
-        });
+        try {
+          await chooseAndReplaceMaterialAudio({
+            mode: this.data.mode,
+            openid: this.data.openid,
+            materialId: createdMaterialId,
+            filePath: this.data.pendingAudioPath,
+            fileName: this.data.audioFileName
+          });
+        } catch (audioError) {
+          await deleteMaterialByMode(this.data.mode, createdMaterialId);
+          throw audioError;
+        }
       }
       if (this.data.mode === 'cloud') {
         await syncCloudData();

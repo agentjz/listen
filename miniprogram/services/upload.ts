@@ -22,7 +22,7 @@ export async function chooseAndReplaceMaterialAudio(input: UploadMaterialAudioIn
   }
 
   if (input.mode === 'local') {
-    const saved = await wx.getFileSystemManager().saveFile({ tempFilePath: selectedFile.path });
+    const saved = await saveTempFileToLocalCache(selectedFile.path);
     return replaceListeningAudioByMode('local', {
       materialId: input.materialId,
       cloudFileId: saved.savedFilePath,
@@ -58,4 +58,22 @@ async function chooseAudioFile(): Promise<{ path: string; name: string; size: nu
   }
 
   return file;
+}
+
+function saveTempFileToLocalCache(tempFilePath: string): Promise<{ savedFilePath: string }> {
+  return new Promise((resolve, reject) => {
+    wx.getFileSystemManager().saveFile({
+      tempFilePath,
+      success(result) {
+        if (!result.savedFilePath) {
+          reject(new Error('音频保存失败'));
+          return;
+        }
+        resolve({ savedFilePath: result.savedFilePath });
+      },
+      fail(error) {
+        reject(new Error(error.errMsg || '音频保存失败'));
+      }
+    });
+  });
 }

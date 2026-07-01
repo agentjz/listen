@@ -67,6 +67,10 @@ declare namespace WechatMiniprogram {
   }
 
   interface FileSystemManager {
-    saveFile(options: { tempFilePath: string }): Promise<{ savedFilePath: string }>;
+    saveFile(options: {
+      tempFilePath: string;
+      success?: (result: { savedFilePath: string }) => void;
+      fail?: (error: { errMsg: string }) => void;
+    }): void;
   }
 }

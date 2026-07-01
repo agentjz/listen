@@ -34,5 +34,5 @@
     </view>
   </view>
 
-  <van-button color="#38bdf8" block loading="{{isSaving}}" bindtap="saveMaterial">保存到未归类材料</van-button>
+  <van-button color="#38bdf8" block loading="{{isSaving}}" disabled="{{isSaving}}" bindtap="saveMaterial">保存到未归类材料</van-button>
 </view>
